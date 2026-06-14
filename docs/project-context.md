@@ -4,7 +4,7 @@
 |---|---|---|
 | 1.0 | 2026-06-12 | Senior PM |
 
-**Documentos fuente:** `docs/01-prd.md`, `docs/02-frd.md`, `docs/03-architecture.md`, `docs/04-database.md`, `docs/05-ui-ux.md`
+**Documentos fuente:** `docs/01-prd.md`, `docs/02-frd.md`, `docs/03-architecture.md`, `docs/04-database.md`, `docs/05-ui-ux.md`, `docs/06-backlog.md`
 
 ---
 
@@ -189,6 +189,40 @@
 
 ---
 
+## Roadmap de Ejecución
+
+**Documento de referencia:** `docs/06-backlog.md`
+
+**Backlog aprobado:** 31 historias de usuario organizadas en 5 sprints (Sprint 0–4), 144 puntos de estimación, 10 semanas de desarrollo.
+
+| Sprint | Semanas | Enfoque | Historias | Puntos | Entregable |
+|---|---|---|---|---|---|
+| **Sprint 0** | 1–2 | Fundación técnica: proyecto, DB, auth, CI/CD, layout | 10 | 34 pts | Infraestructura base funcional |
+| **Sprint 1** | 3–4 | Auth + Dueños + Mascotas + Búsqueda global | 5 | 31 pts | Registro clínica, staff, dueños, mascotas |
+| **Sprint 2** | 5–6 | Agenda de citas | 4 | 24 pts | Vista día/semana, crear/editar/cancelar citas |
+| **Sprint 3** | 7–8 | Historial médico + Vacunas + Recordatorios | 5 | 26 pts | Timeline, consultas, cirugías, vacunas, emails |
+| **Sprint 4** | 9–10 | Dashboard + Refinamiento UX | 7 | 29 pts | 5 widgets dashboard, accesibilidad, pulido |
+
+**Dependencias entre sprints:**
+
+```
+Sprint 0 ──→ Sprint 1 ──→ Sprint 2 ──→ Sprint 3 ──→ Sprint 4
+Fundación     Auth         Agenda       Historial    Dashboard
+técnica       Dueños                    Vacunas      Refinamiento
+              Mascotas                               UX
+```
+
+- Sprint 0 es prerequisito de todos los demás (DB, auth, layout).
+- Sprint 1 (Dueños + Mascotas) es prerequisito de Sprint 2 (Citas) y Sprint 3 (Historial + Vacunas).
+- Sprint 2 (Citas) es prerequisito de Sprint 4 (Dashboard).
+- Sprint 3 es independiente post-mascotas.
+
+**Objetivo beta cerrada:** Al completar Sprint 4, el MVP v1.0 está listo para ser utilizado por las primeras 3–5 clínicas beta. El producto cubre los 8 módulos definidos en el alcance aprobado. La fase de beta cerrada y ventas (Sprint 5 del roadmap original del PRD) se ejecutará post-construcción con outreach directo, onboarding guiado y recolección de feedback.
+
+**Definition of Done global:** 12 criterios obligatorios por historia (seguridad 6 pasos, RLS, responsive, empty states, skeletons, errores, confirmaciones, soft delete, permisos, accesibilidad, convenciones código, tipado estricto).
+
+---
+
 ## Restricciones del MVP
 
 1. **MVP pequeño y enfocado** — No agregar funcionalidades fuera del alcance aprobado en `docs/01-prd.md` y `docs/02-frd.md`.
@@ -217,8 +251,11 @@
 ### PLAN #4 — UX/UI (docs/05-ui-ux.md) ✅
 - Diseño de UX/UI: navegación, 8 user flows, wireframes desktop+mobile, 16 componentes compartidos, 12 formularios, 14 empty states, accesibilidad (teclado, ARIA, contraste, screen reader, reduced motion, touch targets).
 
-### PLAN #5 — Pendiente ⏳
-- Próximo paso por definir.
+### PLAN #5 — Backlog (docs/06-backlog.md) ✅
+- Backlog completo del MVP: 8 épicas, 31 historias de usuario, 144 pts, 5 sprints.
+- Definition of Done global, dependencias entre sprints, roadmap de ejecución, objetivo beta cerrada.
+
+**Proyecto listo para BUILD.** Todos los PLANs de diseño completados. La fase de construcción inicia con Sprint 0: Fundación Técnica.
 
 ---
 

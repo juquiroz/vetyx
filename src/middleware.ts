@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { actualizarSesion } from "@/lib/supabase/middleware"
 
-const rutasProtegidas = ["/inicio", "/agenda", "/duenos", "/mascotas", "/historial", "/vacunas", "/configuracion"]
+const rutasProtegidas = ["/inicio", "/agenda", "/duenos", "/mascotas", "/historial", "/vacunas", "/configuracion", "/onboarding"]
 const rutasPublicas = ["/login", "/registro"]
 
 export async function middleware(request: NextRequest) {

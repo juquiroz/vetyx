@@ -65,11 +65,35 @@ export async function registrarClinica(input: FormData) {
 
   if (linkError) return { error: linkError.message }
 
+  const otp = linkData?.properties?.email_otp
+  if (!otp) return { error: "No se pudo generar el enlace" }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const verifyRes = await fetch(`${supabaseUrl}/auth/v1/verify`, {
+    method: "POST",
+    headers: {
+      "apikey": process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      type: "magiclink",
+      token: otp,
+      email,
+    }),
+  })
+
+  if (!verifyRes.ok) {
+    const text = await verifyRes.text()
+    return { error: `Error al verificar: ${text}` }
+  }
+
+  const session = await verifyRes.json()
+
   limpiarCacheSesion()
 
   return {
     success: true,
-    mensaje: "Revisa tu email para activar tu cuenta",
-    magicLink: linkData?.properties?.action_link,
+    accessToken: session.access_token,
+    refreshToken: session.refresh_token,
   }
 }

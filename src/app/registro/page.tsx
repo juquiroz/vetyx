@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { crearClienteNavegador } from "@/lib/supabase/client"
 import { registrarClinica } from "@/actions/auth/registro"
 
 export default function RegistroPage() {
@@ -13,7 +21,6 @@ export default function RegistroPage() {
   const [nombreClinica, setNombreClinica] = useState("")
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [exito, setExito] = useState(false)
   const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
@@ -21,38 +28,32 @@ export default function RegistroPage() {
     setEnviando(true)
     setError(null)
 
-    const formData = new FormData()
-    formData.set("email", email)
-    formData.set("nombreClinica", nombreClinica)
+    const form = new FormData()
+    form.set("email", email)
+    form.set("nombreClinica", nombreClinica)
 
-    const result = await registrarClinica(formData)
-
+    const res = await registrarClinica(form)
     setEnviando(false)
 
-    if ("error" in result && result.error) {
-      setError(result.error)
+    if (res.error) {
+      setError(res.error)
       return
     }
 
-    setExito(true)
-  }
+    if (res.accessToken && res.refreshToken) {
+      const supabase = crearClienteNavegador()
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: res.accessToken,
+        refresh_token: res.refreshToken,
+      })
 
-  if (exito) {
-    return (
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">¡Clínica creada!</CardTitle>
-          <CardDescription>
-            Revisa tu email para activar tu cuenta. El enlace expira en 1 hora.
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="justify-center">
-          <Button variant="ghost" onClick={() => router.push("/login")}>
-            Ir a iniciar sesión
-          </Button>
-        </CardFooter>
-      </Card>
-    )
+      if (sessionError) {
+        setError(sessionError.message)
+        return
+      }
+
+      router.push("/inicio")
+    }
   }
 
   return (
@@ -85,16 +86,25 @@ export default function RegistroPage() {
               value={nombreClinica}
               onChange={(e) => setNombreClinica(e.target.value)}
               required
+              maxLength={120}
             />
           </div>
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex-col gap-3">
           <Button type="submit" className="w-full" disabled={enviando}>
             {enviando ? "Creando clínica..." : "Crear clínica"}
           </Button>
+          <p className="text-sm text-muted-foreground">
+            ¿Ya tienes cuenta?{" "}
+            <Button
+              variant="link"
+              className="p-0 h-auto"
+              onClick={() => router.push("/login")}
+            >
+              Iniciar sesión
+            </Button>
+          </p>
         </CardFooter>
       </form>
     </Card>

@@ -8,10 +8,16 @@ export async function obtenerSesion(): Promise<Session | null> {
 
   const supabase = await crearClienteAccion()
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  cacheSession = session
-  return session
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    cacheSession = null
+    return null
+  }
+
+  cacheSession = { user } as Session
+  return cacheSession
 }
 
 export function limpiarCacheSesion() {

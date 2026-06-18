@@ -2,7 +2,7 @@
 
 | Versión | Fecha | Autor |
 |---|---|---|
-| 1.0 | 2026-06-12 | Senior PM |
+| 2.0 | 2026-06-17 | Senior PM |
 
 **Documentos fuente:** `docs/01-prd.md`, `docs/02-frd.md`, `docs/03-architecture.md`, `docs/04-database.md`, `docs/05-ui-ux.md`, `docs/06-backlog.md`
 
@@ -64,13 +64,12 @@
 
 | Capa | Tecnología |
 |---|---|
-| **Frontend** | Next.js 15, TypeScript, Tailwind CSS, shadcn/ui |
+| **Frontend** | Next.js 16.2.9, TypeScript, Tailwind CSS v4, shadcn/ui |
 | **Backend** | Next Server Actions + Route Handlers (API Routes) |
 | **Base de datos** | Supabase (PostgreSQL + RLS para tenancy) |
 | **Auth** | Supabase Auth (magic links, sin contraseñas) |
 | **Storage** | Supabase Storage (para fotos de mascotas, post-MVP) |
-| **Estado cliente** | React Query + Zustand |
-| **Email** | Resend (recordatorios de vacunas) |
+| **Email** | Resend (recordatorios de vacunas + SMTP supabase) |
 | **Hosting** | Vercel |
 
 **Decisiones de stack (documentadas en PRD D-13, D-07, D-04):**
@@ -85,15 +84,19 @@
 
 **Documentos de referencia:** `docs/03-architecture.md`, `docs/04-database.md`
 
-### Decisiones de Base de Datos
+### Decisiones de Base de Datos (ver sección completa arriba)
+
+### Decisiones de Desarrollo
 
 | Decisión | Descripción |
 |---|---|
-| **D-DB-01: Species como tabla catálogo** | `especies` es tabla global (sin `clinic_id`), no PostgreSQL enum. Seed: Perro, Gato, Otro. Extensible sin migración ALTER TYPE. |
-| **D-DB-02: Sin FK formal a auth.users** | `usuarios.id` referencia `auth.users.id` lógicamente sin constraint FK por política de Supabase. Integridad vía service_role en registro. |
+| **D-DB-01: Species como tabla catálogo** | `especies` es tabla global (sin `clinic_id`), no PostgreSQL enum. Seed: Perro, Gato, Otro. |
+| **D-DB-02: Sin FK formal a auth.users** | `usuarios.id` referencia `auth.users.id` lógicamente sin constraint FK. Integridad vía service_role en registro. |
 | **D-DB-03: Raza como columna TEXT** | `mascotas.raza` es `VARCHAR(80)` opcional. Sin tabla `razas` en MVP. |
-| **D-DB-04: Doble reserva validada en aplicación** | Server Action verifica disponibilidad antes de INSERT. Sin exclusión constraint en DB. |
-| **D-DB-05: Sin tabla de auditoría separada** | Trazabilidad vía `created_by`, `updated_at`, soft deletes y ventana de edición 24h en historial médico. |
+| **D-DB-04: Doble reserva con exclusión constraint + validación en app** | Doble capa: (1) Server Action verifica disponibilidad antes de INSERT, (2) PostgreSQL exclusion constraint `excl_citas_solapamiento` con `btree_gist` + `tstzrange` en citas (estados `confirmed`, `in_progress`). Trigger `actualizar_rango_horario` setea `rango_horario` desde `fecha_hora + duracion_minutos`. |
+| **D-DB-05: Sin tabla de auditoría separada** | Trazabilidad vía `created_by`, `updated_at`, soft deletes y ventana de edición 24h en historial. |
+| **D-DEV-01: Dev auth bypass** | En desarrollo, el auth usa OTP verify server-side + `setSession()` en vez de email. `registrarClinica` y `generarLinkDev` generan sesión directa sin SMTP. Para producción, reemplazar con `signInWithOtp()` + Resend SMTP. |
+| **D-DEV-02: obtenerSesion usa getUser()** | `getSession()` (cookies locales) puede devolver null aunque `getUser()` (server) retorne el usuario. Se usa `getUser()` en toda la app para consistencia. |
 
 ### Tenant Isolation y clinic_id
 
@@ -238,25 +241,57 @@ técnica       Dueños                    Vacunas      Refinamiento
 
 ## Estado Actual
 
-### PLAN #1 — PRD y FRD (docs/01-prd.md, docs/02-frd.md) ✅
-- Producto, roadmap, KPIs, decisiones estratégicas.
-- Requerimientos funcionales detallados de 8 módulos.
+### PLANs de diseño (docs/01-prd.md → docs/06-backlog.md) ✅
+Los 6 documentos de diseño están completos y aprobados.
 
-### PLAN #2 — Arquitectura (docs/03-architecture.md) ✅
-- Arquitectura full-stack, multi-tenant, estructura de carpetas, seguridad.
+### BUILD — Sprint 0: Fundación Técnica
+| Componente | Estado |
+|---|---|
+| Scaffold Next.js 16 + Tailwind v4 + shadcn/ui | ✅ |
+| 5 clientes Supabase (browser, server, action, admin, middleware) | ✅ |
+| Database types + domain models | ✅ |
+| Dashboard layout (sidebar + topbar + ClinicProvider) | ✅ |
+| Auth pages (login + registro) + callback | ✅ |
+| Middleware con protección de rutas | ✅ |
+| Auth helpers (obtenerSesion, obtenerUsuarioActual, verificarPermiso) | ✅ |
+| Template Server Action (6-step checklist) | ✅ |
+| Migration 001: 9 tablas + RLS + índices + seed | ✅ Aplicada |
+| Migration 002: fix RLS function SECURITY DEFINER | ✅ Aplicada |
+| Zod schemas para todos los módulos | ✅ |
+| shadcn/ui components + Shared components | ✅ |
+| Placeholder pages para todos los módulos | ✅ |
+| Vitest + Testing Library configurado | ✅ |
+| Dev auth bypass (OTP verify + setSession, sin email) | ✅ |
+| Fix infinite redirect loop (getSession → getUser) | ✅ |
+| `pnpm build` 0 errores, `pnpm tsc --noEmit` 0 errores, `pnpm lint` 0 errores | ✅ |
 
-### PLAN #3 — Base de Datos (docs/04-database.md) ✅
-- Modelo conceptual, lógico, ERD, diccionario de datos, índices, RLS, tenant isolation.
+### Sprint 1 — Auth + Dueños + Mascotas
+| Historia | Estado |
+|---|---|
+| H-01: Registro de clínica | ✅ Funcional (auto-login sin email) |
+| H-02: Invitar staff | ✅ CRUD miembros + roles (DataTable + modales + Sonner) |
+| H-03: CRUD dueños | ✅ Incluye cédula (migración 004) en todo el flujo |
+| H-04: CRUD mascotas + alta rápida | ✅ Editar/Desactivar en ficha, alta rápida con cédula |
+| H-05: Búsqueda global Cmd+K | ✅ Overlay con resultados agrupados, navegación por flechas |
 
-### PLAN #4 — UX/UI (docs/05-ui-ux.md) ✅
-- Diseño de UX/UI: navegación, 8 user flows, wireframes desktop+mobile, 16 componentes compartidos, 12 formularios, 14 empty states, accesibilidad (teclado, ARIA, contraste, screen reader, reduced motion, touch targets).
+### Sprint 2 — Agenda (Motor disponibilidad)
+| Historia | Estado |
+|---|---|
+| H-09: Prevención doble reserva | ✅ Exclusion constraint + 25 tests + migraciones 005/006 |
+| H-07: UI crear cita | ⏸️ Pendiente |
+| H-06: Vista calendario día/semana | ⏸️ Pendiente |
+| H-08: UI editar/cancelar/completar cita | ⏸️ Pendiente |
 
-### PLAN #5 — Backlog (docs/06-backlog.md) ✅
-- Backlog completo del MVP: 8 épicas, 31 historias de usuario, 144 pts, 5 sprints.
-- Definition of Done global, dependencias entre sprints, roadmap de ejecución, objetivo beta cerrada.
+### Bloqueos conocidos
+- **SMTP/Resend**: El sender `onboarding@resend.dev` solo puede enviar al email del dueño de la cuenta Resend. Para producción se requiere un dominio verificado en Resend. Mientras tanto, el dev auth bypass funciona sin email.
+- **Next.js 16 deprecation**: Middleware → Proxy. Advertencia presente en build, migrar cuando sea estable.
+- **D-DB-04 desactualizado previo a este commit**: Ya existe exclusión constraint con `btree_gist` — este documento ya está corregido.
 
-**Proyecto listo para BUILD.** Todos los PLANs de diseño completados. La fase de construcción inicia con Sprint 0: Fundación Técnica.
+### Próximos pasos
+1. **H-07**: UI crear cita modal + `src/actions/citas/crear.ts` (Server Action transaccional con 6 pasos)
+2. **H-06**: Vista calendario día/semana (grid 09:00-18:00, columnas por veterinario, slots de 30 min)
+3. **H-08**: UI editar/cancelar/completar cita (modal al click en slot ocupado, transiciones de estado)
 
 ---
 
-*Documento de restauración de contexto. Actualizar al inicio de cada sesión para continuar el trabajo.*
+*Documento de restauración de contexto. Leer `docs/resume-next-session.md` al inicio de cada sesión.*

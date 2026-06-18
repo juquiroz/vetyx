@@ -4,13 +4,12 @@
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | Next.js 15, TypeScript, Tailwind CSS, shadcn/ui |
+| Frontend | Next.js 16.2.9, TypeScript, Tailwind CSS v4, shadcn/ui |
 | Backend | Next Server Actions + Route Handlers |
 | Base de datos | Supabase (PostgreSQL + RLS) |
-| Auth | Supabase Auth (magic links) |
+| Auth | Supabase Auth (magic links — en dev: OTP verify + setSession) |
 | Storage | Supabase Storage (post-MVP) |
-| Estado | React Query + Zustand |
-| Email | Resend |
+| Email | Resend (SMTP via Supabase Auth) |
 | Hosting | Vercel |
 
 ## Restricciones
@@ -37,6 +36,19 @@
 - **shadcn/ui** — Usar componentes base de shadcn. No crear UI desde cero.
 - **Tailwind utility-first** — Sin CSS modules ni styled-components.
 - **Commits en español** — Mensajes descriptivos en español.
+
+## Auth en desarrollo (dev bypass)
+
+En desarrollo, el auth NO usa email. El flujo es:
+
+1. **Registro**: `registrarClinica()` crea usuario + clínica en DB, luego genera OTP via `admin.generateLink()`, hace `POST /auth/v1/verify` con el OTP, y retorna `access_token` + `refresh_token`. El cliente llama `supabase.auth.setSession()`.
+2. **Login**: `listarUsuariosDev()` muestra todos los usuarios. Al hacer click, `generarLinkDev(email)` ejecuta el mismo flujo OTP → verify → setSession.
+3. `obtenerSesion()` usa `getUser()` (no `getSession()`) para evitar inconsistencias entre cookies locales y servidor.
+4. Para producción, reemplazar con `signInWithOtp()` + `exchangeCodeForSession()` vía Resend SMTP.
+
+## Contexto diario
+
+Leer `docs/resume-next-session.md` al inicio de cada sesión. Contiene el estado actual, últimos cambios, próximos pasos y problemas conocidos.
 
 ## Reglas del Proyecto
 

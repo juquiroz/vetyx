@@ -1,15 +1,11 @@
-import { EmptyState } from "@/components/shared/empty-state"
-import { PawPrint } from "lucide-react"
+import { listarMascotas } from "@/actions/mascotas/listar"
+import { obtenerEspecies } from "./obtener-especies"
+import { MascotasClient } from "./client"
 
-export default function MascotasPage() {
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Mascotas</h1>
-      <EmptyState
-        icon={<PawPrint className="size-12" />}
-        titulo="No hay mascotas registradas"
-        descripcion="Aún no has registrado ninguna mascota."
-      />
-    </div>
-  )
+export default async function MascotasPage() {
+  const [mascotas, especies] = await Promise.all([
+    listarMascotas(),
+    obtenerEspecies(),
+  ])
+  return <MascotasClient mascotasIniciales={mascotas} especies={especies} />
 }

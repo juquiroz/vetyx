@@ -29,6 +29,16 @@ const PERMISOS = {
     usuarios: [],
     config: [],
   },
+  "dueño": {
+    duenos: ["ver"],
+    mascotas: ["ver"],
+    citas: [],
+    historial: ["ver"],
+    vacunas: ["ver"],
+    dashboard: [],
+    usuarios: [],
+    config: [],
+  },
 } as const
 
 type Rol = keyof typeof PERMISOS

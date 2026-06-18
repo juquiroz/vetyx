@@ -4,6 +4,7 @@ import { obtenerUsuarioActual } from "@/lib/auth/get-current-user"
 import { ClinicProvider } from "@/providers/clinic-provider"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Topbar } from "@/components/layout/topbar"
+import { Toaster } from "@/components/ui/sonner"
 import { crearClienteAccion } from "@/lib/supabase/action"
 
 export default async function DashboardLayout({
@@ -32,6 +33,7 @@ export default async function DashboardLayout({
           </main>
         </div>
       </div>
+      <Toaster />
     </ClinicProvider>
   )
 }

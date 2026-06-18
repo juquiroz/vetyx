@@ -1,54 +1,181 @@
-import { EmptyState } from "@/components/shared/empty-state"
-import { Clock, Syringe } from "lucide-react"
+import { notFound } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { PawPrint } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { obtenerMascota } from "@/actions/mascotas/obtener"
+import { obtenerHistorial } from "@/actions/historial/obtener"
+import { obtenerVacunas } from "@/actions/vacunas/obtener"
+import { AccionesMascota } from "./acciones"
+import { PawPrint, Clock, Syringe, Calendar, Weight, Info } from "lucide-react"
 
-export default async function FichaMascotaPage({
-  params,
-}: {
+interface Props {
   params: Promise<{ id: string }>
-}) {
+}
+
+export default async function FichaMascotaPage({ params }: Props) {
   const { id } = await params
+  const mascota = await obtenerMascota(id)
+
+  if (!mascota) notFound()
+
+  const [historial, vacunas] = await Promise.all([
+    obtenerHistorial(id),
+    obtenerVacunas(id),
+  ])
+
+  const ETIQUETAS_SEXO: Record<string, string> = {
+    macho: "Macho",
+    hembra: "Hembra",
+    no_especificado: "No especificado",
+  }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Ficha del paciente</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">{mascota.nombre}</h1>
+          {mascota.activo ? (
+            <Badge variant="success">Activo</Badge>
+          ) : (
+            <Badge variant="destructive">Inactivo</Badge>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <AccionesMascota mascota={mascota} />
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/duenos/${mascota.dueno.id}`}>
+              Ver dueño
+            </Link>
+          </Button>
+        </div>
+      </div>
+
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PawPrint className="size-5" />
-            Mascota
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">ID: {id}</p>
+        <CardContent className="grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex items-center gap-2 text-sm">
+            <PawPrint className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Especie:</span>
+            <span className="font-medium">{mascota.especie}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Info className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Raza:</span>
+            <span className="font-medium">{mascota.raza || "—"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Info className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Color:</span>
+            <span className="font-medium">{mascota.color || "—"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Info className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Sexo:</span>
+            <span className="font-medium">{ETIQUETAS_SEXO[mascota.sexo] ?? mascota.sexo}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Weight className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Peso:</span>
+            <span className="font-medium">{mascota.peso ? `${mascota.peso} kg` : "—"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Calendar className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Nacimiento:</span>
+            <span className="font-medium">{mascota.fecha_nacimiento ? new Date(mascota.fecha_nacimiento).toLocaleDateString("es-MX") : "—"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Info className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Esterilizado:</span>
+            <span className="font-medium">{mascota.esterilizado ? "Sí" : "No"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm sm:col-span-2">
+            <PawPrint className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Dueño:</span>
+            <Link href={`/duenos/${mascota.dueno.id}`} className="font-medium text-primary hover:underline">
+              {mascota.dueno.nombre}
+            </Link>
+            <span className="text-muted-foreground">· {mascota.dueno.telefono}</span>
+          </div>
         </CardContent>
       </Card>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Línea de tiempo</h2>
-          <Button size="sm">Nuevo evento</Button>
-        </div>
-        <EmptyState
-          icon={<Clock className="size-8" />}
-          titulo="Este paciente no tiene eventos registrados"
-          descripcion="Este paciente no tiene eventos registrados."
-          accion={{ label: "Registrar primera consulta", href: "#" }}
-        />
-      </div>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Vacunas</h2>
-          <Button size="sm">Registrar vacuna</Button>
-        </div>
-        <EmptyState
-          icon={<Syringe className="size-8" />}
-          titulo="Este paciente no tiene vacunas registradas"
-          descripcion="Este paciente no tiene vacunas registradas."
-          accion={{ label: "Registrar primera vacuna", href: "#" }}
-        />
-      </div>
+
+      <Tabs defaultValue="historial">
+        <TabsList>
+          <TabsTrigger value="historial" className="flex items-center gap-2">
+            <Clock className="size-4" />
+            Historial
+          </TabsTrigger>
+          <TabsTrigger value="vacunas" className="flex items-center gap-2">
+            <Syringe className="size-4" />
+            Vacunas
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="historial" className="space-y-4 pt-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Línea de tiempo</h2>
+            <Button asChild size="sm">
+              <Link href={`/historial/${mascota.id}`}>Nuevo evento</Link>
+            </Button>
+          </div>
+          {historial.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <Clock className="size-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Este paciente no tiene eventos registrados.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {historial.map((evento) => (
+                <Card key={evento.id}>
+                  <CardContent className="flex items-start justify-between p-4">
+                    <div>
+                      <p className="font-medium capitalize">{evento.tipo}</p>
+                      <p className="text-sm text-muted-foreground">{evento.diagnostico}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(evento.fecha).toLocaleDateString("es-MX")}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="vacunas" className="space-y-4 pt-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Vacunas</h2>
+            <Button asChild size="sm">
+              <Link href={`/vacunas/${mascota.id}`}>Registrar vacuna</Link>
+            </Button>
+          </div>
+          {vacunas.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <Syringe className="size-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Este paciente no tiene vacunas registradas.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {vacunas.map((vacuna) => (
+                <Card key={vacuna.id}>
+                  <CardContent className="flex items-start justify-between p-4">
+                    <div>
+                      <p className="font-medium">{vacuna.nombre_vacuna}</p>
+                      {vacuna.lote && (
+                        <p className="text-xs text-muted-foreground">Lote: {vacuna.lote}</p>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(vacuna.fecha_aplicacion).toLocaleDateString("es-MX")}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

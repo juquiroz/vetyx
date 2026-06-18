@@ -22,6 +22,13 @@ export interface MascotaConDueno extends Mascota {
   especie: Especie
 }
 
+export interface CitaBasica {
+  id: string
+  mascota_id: string
+  fecha_hora: string
+  duracion_minutos: number
+}
+
 export interface CitaConRelaciones extends Cita {
   mascota: MascotaConDueno
   veterinario: Usuario

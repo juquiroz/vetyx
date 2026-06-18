@@ -46,9 +46,13 @@
 
 `mascotas.raza` es `VARCHAR(80)` opcional. No existe tabla `razas` en MVP. Habilitar catálogo de razas post-MVP requeriría migración con nueva tabla + FK. Decisión consciente para mantener la simplicidad del MVP.
 
-### D-DB-04: Doble reserva validada en aplicación
+### D-DB-04: Doble reserva con exclusión constraint + validación en app
 
-No existe exclusión constraint en PostgreSQL para evitar doble reserva de citas. Se valida en Server Action (SELECT count WHERE veterinario_id, fecha_hora, estado = 'confirmada' antes de INSERT). RLS no puede prevenir doble reserva porque ambas filas pertenecen a la misma clínica.
+Doble capa:
+1. **Server Action**: valida disponibilidad antes de INSERT (SELECT count con overlap check).
+2. **PostgreSQL**: exclusión constraint `excl_citas_solapamiento` con extensión `btree_gist` + `tstzrange`. El trigger `actualizar_rango_horario` (BEFORE INSERT OR UPDATE) setea `rango_horario TSTZRANGE` desde `fecha_hora` + `duracion_minutos * interval '1 minute'`. El constraint solo se aplica sobre filas con estado IN ('confirmed', 'in_progress').
+
+RLS no puede prevenir doble reserva porque ambas filas pertenecen a la misma clínica (mismo tenant).
 
 ### D-DB-05: Sin tabla de auditoría separada en MVP
 
@@ -140,6 +144,7 @@ Rol no es entidad separada; es atributo de Usuario con valores fijos: `admin`, `
 | `telefono` | `VARCHAR(20)` | No | — | — | Teléfono de contacto |
 | `direccion` | `TEXT` | No | — | — | Dirección física |
 | `plan` | `VARCHAR(20)` | No | `'mvp'` | — | Plan de suscripción (MVP = solo 'mvp') |
+| `zona_horaria` | `VARCHAR(64)` | No | `'America/Mexico_City'` | — | Zona horaria IANA para slots y disponibilidad |
 | `activo` | `BOOLEAN` | No | `true` | — | Soft delete / baja del servicio |
 | `fecha_registro` | `TIMESTAMPTZ` | No | `now()` | — | Fecha de creación del tenant |
 | `created_at` | `TIMESTAMPTZ` | No | `now()` | — | Auditoría |
@@ -192,6 +197,8 @@ Rol no es entidad separada; es atributo de Usuario con valores fijos: `admin`, `
 | `nombre` | `VARCHAR(120)` | Sí | — | — | Nombre completo del dueño |
 | `telefono` | `VARCHAR(20)` | Sí | — | — | Teléfono de contacto |
 | `email` | `VARCHAR(255)` | No | — | — | Correo electrónico (recordatorios) |
+| `cedula` | `VARCHAR(20)` | No | — | — | Cédula de identidad (identificador único por clínica) |
+| `user_id` | `UUID` | No | — | `auth.users.id` | Usuario vinculado al portal del dueño (opcional) |
 | `direccion` | `TEXT` | No | — | — | Dirección física |
 | `activo` | `BOOLEAN` | No | `true` | — | Soft delete |
 | `created_by` | `UUID` | Sí | — | `usuarios.id` | Usuario que registró al dueño |
@@ -273,8 +280,10 @@ Rol no es entidad separada; es atributo de Usuario con valores fijos: `admin`, `
 | `fecha_hora` | `TIMESTAMPTZ` | Sí | — | — | Día y hora de la cita |
 | `duracion_minutos` | `INTEGER` | No | `30` | — | Duración del slot |
 | `motivo` | `VARCHAR(200)` | Sí | — | — | Motivo de la consulta |
-| `estado` | `VARCHAR(20)` | No | `'confirmada'` | — | `confirmada`, `completada`, `cancelada`, `no_show` |
+| `estado` | `VARCHAR(20)` | No | `'scheduled'` | — | `scheduled`, `confirmed`, `in_progress`, `completed`, `cancelled`, `no_show` |
 | `monto` | `DECIMAL(10,2)` | No | — | — | Monto cobrado (al completar) |
+| `rango_horario` | `TSTZRANGE` | No | — | — | Rango calculado por trigger `actualizar_rango_horario` (para exclusión constraint) |
+| `observaciones` | `TEXT` | No | — | — | Observaciones adicionales |
 | `notas_internas` | `TEXT` | No | — | — | Notas de la recepcionista |
 | `motivo_cancelacion` | `TEXT` | No | — | — | Motivo si estado = 'cancelada' |
 | `created_by` | `UUID` | Sí | — | `usuarios.id` | Usuario que agendó |
@@ -283,20 +292,29 @@ Rol no es entidad separada; es atributo de Usuario con valores fijos: `admin`, `
 | `updated_at` | `TIMESTAMPTZ` | No | `now()` | — | Auditoría |
 
 **Restricciones:**
-- `CHECK (estado IN ('confirmada', 'completada', 'cancelada', 'no_show'))`
+- `CHECK (estado IN ('scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show'))`
 - `CHECK (char_length(motivo) >= 5)`
 - `CHECK (monto IS NULL OR monto >= 0)`
-- `CHECK (motivo_cancelacion IS NULL OR estado = 'cancelada')`
+- `CHECK (motivo_cancelacion IS NULL OR estado = 'cancelled')`
+- Exclusión constraint: `EXCLUDE USING gist (clinic_id WITH =, veterinario_id WITH =, rango_horario WITH &&) WHERE (estado IN ('confirmed', 'in_progress'))`
 
 **Estados y transiciones:**
 ```
-Confirmada ──→ Completada
-Confirmada ──→ Cancelada
-Confirmada ──→ No-show
-No-show ──→ Cancelada
-Completada → (terminal)
-Cancelada → (terminal)
+scheduled ──→ confirmed
+confirmed ──→ in_progress
+in_progress ──→ completed  (terminal)
+scheduled ──→ cancelled     (lateral)
+confirmed ──→ cancelled     (lateral)
+in_progress ──→ cancelled   (lateral)
+scheduled ──→ no_show       (lateral)
+confirmed ──→ no_show       (lateral)
+completed → (terminal)
+cancelled → (terminal)
+no_show → (terminal)
 ```
+
+**Estados que bloquean (exclusion constraint):** `confirmed`, `in_progress`
+**Estados que NO bloquean:** `scheduled`, `completed`, `cancelled`, `no_show`
 
 **Dependencias:** `clinicas` (clinic_id FK), `mascotas` (mascota_id FK), `usuarios` (veterinario_id FK, created_by FK, completed_by FK).
 
@@ -402,10 +420,11 @@ Cancelada → (terminal)
 | 5 | telefono | VARCHAR | 20 | No | — | — | Teléfono |
 | 6 | direccion | TEXT | — | No | — | — | Dirección física |
 | 7 | plan | VARCHAR | 20 | No | `'mvp'` | — | Plan suscripción |
-| 8 | activo | BOOLEAN | — | No | `true` | — | Soft delete |
-| 9 | fecha_registro | TIMESTAMPTZ | — | No | `now()` | — | Fecha creación |
-| 10 | created_at | TIMESTAMPTZ | — | No | `now()` | — | Auditoría |
-| 11 | updated_at | TIMESTAMPTZ | — | No | `now()` | — | Auditoría |
+| 8 | zona_horaria | VARCHAR | 64 | No | `'America/Mexico_City'` | — | Zona horaria IANA |
+| 9 | activo | BOOLEAN | — | No | `true` | — | Soft delete |
+| 10 | fecha_registro | TIMESTAMPTZ | — | No | `now()` | — | Fecha creación |
+| 11 | created_at | TIMESTAMPTZ | — | No | `now()` | — | Auditoría |
+| 12 | updated_at | TIMESTAMPTZ | — | No | `now()` | — | Auditoría |
 
 ### 4.2 usuarios
 
@@ -433,11 +452,13 @@ Cancelada → (terminal)
 | 3 | nombre | VARCHAR | 120 | Sí | — | — | Nombre completo |
 | 4 | telefono | VARCHAR | 20 | Sí | — | — | Teléfono |
 | 5 | email | VARCHAR | 255 | No | — | — | Correo |
-| 6 | direccion | TEXT | — | No | — | — | Dirección |
-| 7 | activo | BOOLEAN | — | No | `true` | — | Soft delete |
-| 8 | created_by | UUID | — | Sí | — | `usuarios.id` | Quién registró |
-| 9 | created_at | TIMESTAMPTZ | — | No | `now()` | — | Auditoría |
-| 10 | updated_at | TIMESTAMPTZ | — | No | `now()` | — | Auditoría |
+| 6 | cedula | VARCHAR | 20 | No | — | — | Cédula de identidad |
+| 7 | user_id | UUID | — | No | — | `auth.users.id` | Usuario vinculado (portal dueño) |
+| 8 | direccion | TEXT | — | No | — | — | Dirección |
+| 9 | activo | BOOLEAN | — | No | `true` | — | Soft delete |
+| 10 | created_by | UUID | — | Sí | — | `usuarios.id` | Quién registró |
+| 11 | created_at | TIMESTAMPTZ | — | No | `now()` | — | Auditoría |
+| 12 | updated_at | TIMESTAMPTZ | — | No | `now()` | — | Auditoría |
 
 ### 4.4 especies
 
@@ -479,14 +500,16 @@ Cancelada → (terminal)
 | 5 | fecha_hora | TIMESTAMPTZ | — | Sí | — | — | Día y hora |
 | 6 | duracion_minutos | INTEGER | — | No | `30` | — | Duración slot |
 | 7 | motivo | VARCHAR | 200 | Sí | — | — | Motivo consulta |
-| 8 | estado | VARCHAR | 20 | No | `'confirmada'` | — | confirmada, completada, cancelada, no_show |
+| 8 | estado | VARCHAR | 20 | No | `'scheduled'` | — | scheduled, confirmed, in_progress, completed, cancelled, no_show |
 | 9 | monto | DECIMAL(10,2) | 10,2 | No | — | — | Monto cobrado |
 | 10 | notas_internas | TEXT | — | No | — | — | Notas recepcionista |
 | 11 | motivo_cancelacion | TEXT | — | No | — | — | Motivo cancelación |
 | 12 | created_by | UUID | — | Sí | — | `usuarios.id` | Quién agendó |
 | 13 | completed_by | UUID | — | No | — | `usuarios.id` | Vet que completó |
-| 14 | created_at | TIMESTAMPTZ | — | No | `now()` | — | Auditoría |
-| 15 | updated_at | TIMESTAMPTZ | — | No | `now()` | — | Auditoría |
+| 14 | rango_horario | TSTZRANGE | — | No | — | — | Rango calculado por trigger (exclusion constraint) |
+| 15 | observaciones | TEXT | — | No | — | — | Observaciones adicionales |
+| 16 | created_at | TIMESTAMPTZ | — | No | `now()` | — | Auditoría |
+| 17 | updated_at | TIMESTAMPTZ | — | No | `now()` | — | Auditoría |
 
 ### 4.7 historial_medico
 
@@ -576,6 +599,14 @@ erDiagram
 | `especies` | `UNIQUE (nombre)` | B-tree único | Nombre único global |
 | `catalogo_vacunas` | `UNIQUE (nombre)` | B-tree único | Nombre único global |
 
+### 6.1b Exclusión constraint (doble reserva)
+
+| Tabla | Constraint | Tipo | Propósito |
+|---|---|---|---|
+| `citas` | `excl_citas_solapamiento` | `EXCLUDE USING gist` con `btree_gist` | Prevenir solapamiento de citas `confirmed`/`in_progress` para el mismo vet |
+
+El constraint usa extensión `btree_gist` y compara: `clinic_id WITH =`, `veterinario_id WITH =`, `rango_horario WITH &&` (overlap). Solo activo para estados que bloquean (`WHERE estado IN ('confirmed', 'in_progress')`). El `rango_horario` se setea mediante trigger `actualizar_rango_horario` (BEFORE INSERT OR UPDATE).
+
 ### 6.2 Índices de performance
 
 | Tabla | Índice | Tipo | Propósito |
@@ -585,7 +616,7 @@ erDiagram
 | `mascotas` | `(clinic_id, nombre)` | B-tree | Búsqueda por nombre |
 | `mascotas` | `(clinic_id, owner_id)` | B-tree | Listar mascotas de un dueño |
 | `mascotas` | `(clinic_id) WHERE activo = true` | B-tree parcial | Filtrar activos |
-| `citas` | `(clinic_id, veterinario_id, fecha_hora) WHERE estado = 'confirmada'` | B-tree parcial | Validar doble reserva |
+| `citas` | `(clinic_id, veterinario_id, fecha_hora) WHERE estado IN ('scheduled','confirmed','in_progress')` | B-tree parcial | Validar disponibilidad en Server Action |
 | `citas` | `(clinic_id, fecha_hora)` | B-tree | Vista agenda diaria/semanal |
 | `citas` | `(clinic_id, estado)` | B-tree | Dashboard (agregación) |
 | `citas` | `(clinic_id, veterinario_id, fecha_hora)` | B-tree | Vista del vet en agenda |
@@ -843,7 +874,7 @@ CREATE POLICY "storage_tenant_isolation" ON storage.objects
 |---|---|---|
 | `usuarios` | `rol` | `'admin'`, `'vet'`, `'recepcionista'` |
 | `mascotas` | `sexo` | `'macho'`, `'hembra'`, `'no_especificado'` |
-| `citas` | `estado` | `'confirmada'`, `'completada'`, `'cancelada'`, `'no_show'` |
+| `citas` | `estado` | `'scheduled'`, `'confirmed'`, `'in_progress'`, `'completed'`, `'cancelled'`, `'no_show'` |
 | `historial_medico` | `tipo` | `'consulta'`, `'cirugia'` |
 | `clinicas` | `plan` | `'mvp'` |
 

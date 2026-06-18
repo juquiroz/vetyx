@@ -11,6 +11,7 @@ export type Database = {
           direccion: string | null
           plan: string
           activo: boolean
+          zona_horaria: string
           fecha_registro: string
           created_at: string
           updated_at: string
@@ -24,6 +25,7 @@ export type Database = {
           direccion?: string | null
           plan?: string
           activo?: boolean
+          zona_horaria?: string
           fecha_registro?: string
           created_at?: string
           updated_at?: string
@@ -37,6 +39,7 @@ export type Database = {
           direccion?: string | null
           plan?: string
           activo?: boolean
+          zona_horaria?: string
           fecha_registro?: string
           created_at?: string
           updated_at?: string
@@ -86,11 +89,13 @@ export type Database = {
         Row: {
           id: string
           clinic_id: string
+          cedula: string | null
           nombre: string
           telefono: string
           email: string | null
           direccion: string | null
           activo: boolean
+          user_id: string | null
           created_by: string
           created_at: string
           updated_at: string
@@ -98,11 +103,13 @@ export type Database = {
         Insert: {
           id?: string
           clinic_id: string
+          cedula?: string | null
           nombre: string
           telefono: string
           email?: string | null
           direccion?: string | null
           activo?: boolean
+          user_id?: string | null
           created_by: string
           created_at?: string
           updated_at?: string
@@ -110,11 +117,13 @@ export type Database = {
         Update: {
           id?: string
           clinic_id?: string
+          cedula?: string | null
           nombre?: string
           telefono?: string
           email?: string | null
           direccion?: string | null
           activo?: boolean
+          user_id?: string | null
           created_by?: string
           created_at?: string
           updated_at?: string
@@ -204,10 +213,12 @@ export type Database = {
           veterinario_id: string
           fecha_hora: string
           duracion_minutos: number
+          rango_horario: string
           motivo: string
           estado: string
           monto: number | null
           notas_internas: string | null
+          observaciones: string | null
           motivo_cancelacion: string | null
           created_by: string
           completed_by: string | null
@@ -220,11 +231,12 @@ export type Database = {
           mascota_id: string
           veterinario_id: string
           fecha_hora: string
-          duracion_minutos?: number
+          duracion_minutos: number
           motivo: string
           estado?: string
           monto?: number | null
           notas_internas?: string | null
+          observaciones?: string | null
           motivo_cancelacion?: string | null
           created_by: string
           completed_by?: string | null
@@ -242,6 +254,7 @@ export type Database = {
           estado?: string
           monto?: number | null
           notas_internas?: string | null
+          observaciones?: string | null
           motivo_cancelacion?: string | null
           created_by?: string
           completed_by?: string | null

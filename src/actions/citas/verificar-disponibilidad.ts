@@ -4,6 +4,8 @@ import { z } from "zod"
 import { obtenerSesion } from "@/lib/auth/get-session"
 import { obtenerUsuarioActual } from "@/lib/auth/get-current-user"
 import { crearClienteAccion } from "@/lib/supabase/action"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { Database } from "@/types/database"
 import {
   SLOT_DURACION_MINUTOS, ESTADOS_BLOQUEAN,
   HORA_INICIO, HORA_FIN, HORA_COMIDAS,
@@ -36,21 +38,19 @@ const esquema = z.object({
   excluir_cita_id: z.string().uuid().optional(),
 })
 
-export async function verificarDisponibilidad(
-  input: FormData
-): Promise<DisponibilidadResultado | { error: string }> {
-  const session = await obtenerSesion()
-  if (!session) return { error: "No autorizado" }
+export type VerificarDisponibilidadParams = {
+  supabase: SupabaseClient<Database>
+  clinic_id: string
+  veterinario_id: string
+  fecha_hora: string
+  duracion_minutos: number
+  excluir_cita_id?: string
+}
 
-  const usuario = await obtenerUsuarioActual(session.user.id)
-  if (!usuario) return { error: "Usuario no encontrado" }
-
-  const parsed = esquema.safeParse(Object.fromEntries(input))
-  if (!parsed.success) return { error: "Datos inválidos" }
-
-  const { veterinario_id, fecha_hora, duracion_minutos, excluir_cita_id } = parsed.data
-
-  const supabase = await crearClienteAccion()
+export async function verificarDisponibilidadInterna(
+  params: VerificarDisponibilidadParams
+): Promise<DisponibilidadResultado> {
+  const { supabase, clinic_id, veterinario_id, fecha_hora, duracion_minutos, excluir_cita_id } = params
   const fechaCita = new Date(fecha_hora)
 
   if (!validarHorarioLaboral(fecha_hora, duracion_minutos, ZONA_HORARIA_DEFAULT)) {
@@ -63,7 +63,7 @@ export async function verificarDisponibilidad(
   const { data: citasExistentes } = await supabase
     .from("citas")
     .select("id, mascota_id, fecha_hora, duracion_minutos")
-    .eq("clinic_id", usuario.clinic_id)
+    .eq("clinic_id", clinic_id)
     .eq("veterinario_id", veterinario_id)
     .in("estado", [...ESTADOS_BLOQUEAN])
     .gte("fecha_hora", inicioDia.toISOString())
@@ -95,6 +95,32 @@ export async function verificarDisponibilidad(
   }
 
   return { disponible: true, conflictos: [], sugerencias: [] }
+}
+
+export async function verificarDisponibilidad(
+  input: FormData
+): Promise<DisponibilidadResultado | { error: string }> {
+  const session = await obtenerSesion()
+  if (!session) return { error: "No autorizado" }
+
+  const usuario = await obtenerUsuarioActual(session.user.id)
+  if (!usuario) return { error: "Usuario no encontrado" }
+
+  const parsed = esquema.safeParse(Object.fromEntries(input))
+  if (!parsed.success) return { error: "Datos inválidos" }
+
+  const { veterinario_id, fecha_hora, duracion_minutos, excluir_cita_id } = parsed.data
+
+  const supabase = await crearClienteAccion()
+
+  return verificarDisponibilidadInterna({
+    supabase,
+    clinic_id: usuario.clinic_id,
+    veterinario_id,
+    fecha_hora,
+    duracion_minutos,
+    excluir_cita_id,
+  })
 }
 
 function generarSugerencias(

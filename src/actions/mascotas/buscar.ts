@@ -13,14 +13,14 @@ export interface ResultadoMascota {
   activo: boolean
 }
 
-export async function buscarMascotas(query: string): Promise<ResultadoMascota[]> {
+export async function buscarMascotas(query: string, dueno_id?: string): Promise<ResultadoMascota[]> {
   const session = await obtenerSesion()
   if (!session) return []
 
   const usuario = await obtenerUsuarioActual(session.user.id)
   if (!usuario) return []
 
-  if (query.length < 2) return []
+  if (query.length < 2 && !dueno_id) return []
 
   const supabase = await crearClienteAccion()
 
@@ -28,6 +28,39 @@ export async function buscarMascotas(query: string): Promise<ResultadoMascota[]>
   const mapaEspecies = new Map(especies?.map((e) => [e.id, e.nombre]) ?? [])
 
   const termino = `%${query}%`
+
+  let duenoIds: string[] = []
+
+  if (dueno_id) {
+    duenoIds = [dueno_id]
+    const { data: dueno } = await supabase
+      .from("duenos")
+      .select("id, nombre")
+      .eq("id", dueno_id)
+      .single()
+    if (dueno) {
+      const mapaDuenosTemp = new Map([[dueno.id, dueno.nombre]])
+      const { data: mascotas } = await supabase
+        .from("mascotas")
+        .select("id, nombre, especie_id, owner_id, activo")
+        .eq("clinic_id", usuario.clinic_id)
+        .eq("owner_id", dueno_id)
+        .ilike("nombre", termino)
+        .limit(10)
+
+      return (
+        mascotas?.map((m) => ({
+          id: m.id,
+          nombre: m.nombre,
+          especie: mapaEspecies.get(m.especie_id) ?? "",
+          dueno_nombre: mapaDuenosTemp.get(m.owner_id) ?? "",
+          dueno_id: m.owner_id,
+          activo: m.activo,
+        })) ?? []
+      )
+    }
+    return []
+  }
 
   const { data: duenos } = await supabase
     .from("duenos")
@@ -37,7 +70,7 @@ export async function buscarMascotas(query: string): Promise<ResultadoMascota[]>
     .limit(10)
 
   const mapaDuenos = new Map(duenos?.map((d) => [d.id, d.nombre]) ?? [])
-  const duenoIds = [...mapaDuenos.keys()]
+  duenoIds = [...mapaDuenos.keys()]
 
   const mascotasQuery = supabase
     .from("mascotas")

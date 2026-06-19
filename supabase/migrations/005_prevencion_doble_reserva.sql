@@ -15,6 +15,9 @@ ALTER TABLE public.citas
   ADD CONSTRAINT ck_citas_estado
   CHECK (estado IN ('scheduled','confirmed','in_progress','completed','cancelled','no_show'));
 
+ALTER TABLE public.citas
+  ALTER COLUMN estado SET DEFAULT 'scheduled';
+
 -- 3. Actualizar CHECK de motivo_cancelacion (estado 'cancelled' en lugar de 'cancelada')
 ALTER TABLE public.citas
   DROP CONSTRAINT IF EXISTS citas_motivo_cancelacion_check;

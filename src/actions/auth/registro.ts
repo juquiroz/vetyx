@@ -48,7 +48,7 @@ export async function registrarClinica(input: FormData) {
     id: userId,
     clinic_id: clinica.id,
     email,
-    nombre: email.split("@")[0],
+    nombre: "Administrador",
     rol: "admin",
   })
 

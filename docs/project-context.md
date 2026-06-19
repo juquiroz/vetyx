@@ -274,23 +274,24 @@ Los 6 documentos de diseño están completos y aprobados.
 | H-04: CRUD mascotas + alta rápida | ✅ Editar/Desactivar en ficha, alta rápida con cédula |
 | H-05: Búsqueda global Cmd+K | ✅ Overlay con resultados agrupados, navegación por flechas |
 
-### Sprint 2 — Agenda (Motor disponibilidad)
+### Sprint 2 — Agenda (Citas)
 | Historia | Estado |
 |---|---|
 | H-09: Prevención doble reserva | ✅ Exclusion constraint + 25 tests + migraciones 005/006 |
-| H-07: UI crear cita | ⏸️ Pendiente |
-| H-06: Vista calendario día/semana | ⏸️ Pendiente |
+| H-07 Fase A: Server Action crear cita | ✅ 8 tests |
+| H-07 Fase B: Modal crear cita | ✅ 6 tests (timezone-aware, dueño como paso obligatorio, persistencia tras error) |
+| H-06: Vista agenda (lista día) | 🟡 Parcial — navegación día, cards con datos reales, sin grid calendario |
 | H-08: UI editar/cancelar/completar cita | ⏸️ Pendiente |
 
 ### Bloqueos conocidos
 - **SMTP/Resend**: El sender `onboarding@resend.dev` solo puede enviar al email del dueño de la cuenta Resend. Para producción se requiere un dominio verificado en Resend. Mientras tanto, el dev auth bypass funciona sin email.
 - **Next.js 16 deprecation**: Middleware → Proxy. Advertencia presente en build, migrar cuando sea estable.
-- **D-DB-04 desactualizado previo a este commit**: Ya existe exclusión constraint con `btree_gist` — este documento ya está corregido.
+- **Bug `ck_citas_estado` corregido**: El DEFAULT de `estado` era `'confirmada'` (español), ahora `'scheduled'` (inglés). Si migración 005 ya se aplicó, ejecutar `ALTER TABLE public.citas ALTER COLUMN estado SET DEFAULT 'scheduled';`.
 
 ### Próximos pasos
-1. **H-07**: UI crear cita modal + `src/actions/citas/crear.ts` (Server Action transaccional con 6 pasos)
-2. **H-06**: Vista calendario día/semana (grid 09:00-18:00, columnas por veterinario, slots de 30 min)
-3. **H-08**: UI editar/cancelar/completar cita (modal al click en slot ocupado, transiciones de estado)
+1. **H-06**: Vista calendario día/semana (grid 09:00-18:00, columnas por veterinario, slots de 30 min, navegación entre días, abrir `CrearCitaModal` desde slot vacío)
+2. **H-08**: UI editar/cancelar/completar cita (modal al click en slot ocupado, transiciones de estado)
+3. **Sprint 3**: Historial médico + Vacunas + Recordatorios
 
 ---
 

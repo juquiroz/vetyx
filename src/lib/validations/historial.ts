@@ -1,8 +1,17 @@
 import { z } from "zod"
 
+export const TIPOS_HISTORIAL = [
+  "consulta",
+  "cirugia",
+  "hospitalizacion",
+  "control",
+  "procedimiento",
+  "otro",
+] as const
+
 export const esquemaCrearEvento = z.object({
   mascota_id: z.string().uuid("Mascota requerida"),
-  tipo: z.enum(["consulta", "cirugia"]),
+  tipo: z.enum(TIPOS_HISTORIAL, { message: "Tipo de evento inválido" }),
   fecha: z.string().min(1, "La fecha es requerida"),
   diagnostico: z.string().min(10, "El diagnóstico debe tener al menos 10 caracteres"),
   tratamiento: z.string().optional().or(z.literal("")),
@@ -10,7 +19,7 @@ export const esquemaCrearEvento = z.object({
 })
 
 export const esquemaEditarEvento = z.object({
-  diagnostico: z.string().min(10).optional(),
+  id: z.string().uuid("Evento requerido"),
   tratamiento: z.string().optional().or(z.literal("")),
   notas: z.string().optional().or(z.literal("")),
 })

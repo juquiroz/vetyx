@@ -1,45 +1,39 @@
 # Vetyx — Reanudar Sesión
 
-> Leer esto al iniciar cada sesión con opencode.
+> Leer esto al inicio de cada sesión con opencode.
 
 ---
 
 ## Estado actual
 
-**Sprint 2 (Agenda — Motor disponibilidad + Crear cita + Vista básica)**: H-09, H-07 completados. H-06 parcial (vista lista día, sin grid calendario).
-**Sprint 3 (Historial + Vacunas + Recordatorios)**: no iniciado.
+**Sprint 2 (Agenda — Motor disponibilidad + Crear citas + Grid + Editar/Cancelar/Completar)**: COMPLETADO ✅
+**Sprint 3 (Historial + Vacunas + Recordatorios)**: H-10 (Timeline) completado ✅
 
 | Componente | Estado |
 |---|---|
 | Scaffold + shadcn/ui + Tailwind v4 | ✅ |
-| 10 tablas DB + RLS + índices + seed (migrations 001–006) | ✅ Aplicadas |
+| 10 tablas DB + RLS + índices + seed (migrations 001–007) | ✅ Aplicadas |
 | Dashboard layout + ClinicProvider + Dark mode | ✅ |
 | Auth: registro + login + middleware + helpers | ✅ |
 | Dev auth bypass (OTP verify + setSession, sin email) | ✅ |
-| H-01: Registro de clínica | ✅ |
-| H-02: Invitar staff (CRUD miembros + roles) | ✅ |
-| H-03: CRUD dueños + cédula | ✅ |
-| H-04: CRUD mascotas + alta rápida | ✅ |
-| H-05: Búsqueda global Cmd+K | ✅ |
-| H-09: Motor disponibilidad (doble reserva) | ✅ |
-| H-07 Fase A: Server Action crear cita | ✅ |
-| H-07 Fase B: Modal crear cita | ✅ |
-| H-06: Vista agenda (lista día con navegación) | 🟡 Parcial |
-| `pnpm build` / `pnpm tsc` / `pnpm lint` / `pnpm test` | ✅ 0 errores, 39 tests |
+| H-01 a H-05 (Dueños, Mascotas, Staff, Búsqueda) | ✅ |
+| H-09: Motor disponibilidad (doble reserva) | ✅ 25 tests |
+| H-07: Crear cita (Server Action + Modal) | ✅ 14 tests |
+| H-06 Fase A: Motor agenda (mapear-dia, mapear-semana, obtener-citas-rango) | ✅ 18 tests |
+| H-06 Fase B: UI Grid (agenda-grid, toolbar, column, slot, event-card) | ✅ Sin tests UI |
+| H-08: Editar/Cancelar/Completar cita | ✅ 23 tests (6 Server Actions + modal) |
+| H-10: Timeline historial (modelo, action, componentes, integración ficha) | ✅ 12 tests |
+| `pnpm build` / `pnpm tsc` / `pnpm test` | ✅ 0 errores, 92 tests |
 
 ---
 
 ## Últimos cambios importantes
 
-1. **H-07 (Crear cita — Fase A)**: Server Action `crear.ts` con 6 pasos, reusa `verificarDisponibilidadInterna`, 8 tests.
-2. **H-07 (Crear cita — Fase B)**: `CrearCitaModal` con debounce 300ms/500ms, dueño + mascota + vet + fecha/hora + disponibilidad en tiempo real + sugerencias inline + toast + persistencia tras error. 6 tests del modal.
-3. **Timezone fix en modal**: reemplazado `.000Z` por `new Date(...).toISOString()` en 3 lugares. Tests usan `fireEvent.change` para inputs date/time (jsdom no soporta `user.type` en `type="date"`/`type="time"`), y hora esperada calculada dinámicamente según timezone local.
-4. **Campo Dueño en modal**: paso obligatorio antes de mascota. `buscarMascotas` acepta `dueno_id?: string`.
-5. **`obtener-veterinarios.ts`**: cambiado `.in("rol", ["admin", "vet"])` → `.eq("rol", "vet")` — solo vets en dropdown.
-6. **`registro.ts`**: cambiado `nombre: email.split("@")[0]` → `nombre: "Administrador"` — nombre genérico para el admin.
-7. **Bug `ck_citas_estado`**: el DEFAULT de `estado` era `'confirmada'` (español antiguo en migración 001), pero migración 005 cambió el CHECK a estados en inglés. Al insertar sin `estado`, PostgreSQL usaba `'confirmada'` → violaba el CHECK. **Fix**: `estado: "scheduled"` en `crear.ts` línea 68 + `ALTER COLUMN estado SET DEFAULT 'scheduled'` en migración 005 línea 17.
-8. **`listar.ts`**: nueva Server Action que trae citas del día con relaciones (mascota, dueno, veterinario, especie).
-9. **Agenda page**: reemplazado placeholder con vista funcional — navegación día anterior/hoy/siguiente, carga real de citas, skeleton, EmptyState, cards con hora+mascota+veterinario+dueño+motivo+badge de estado.
+1. **H-10 (Timeline historial)**: Nuevo modelo `EventoTimeline` unificado (`types/timeline.ts`), Server Action `obtenerTimeline` que mergea `historial_medico` + `vacunas` con paginación inline, componente `Timeline` con infinite scroll (IntersectionObserver), `TimelineCard` expandible con colores por tipo (azul/rojo/verde) y badge editable/solo-lectura (ventana 24h). Integrado en ficha mascota reemplazando lista inline. 12 tests.
+2. **H-06 Fase A (Motor agenda)**: ... (sin cambios)
+3. **H-06 Fase B (UI Grid)**: ... (sin cambios)
+4. **H-08 (Editar/Cancelar/Completar)**: ... (sin cambios)
+5. **Mock pattern para Server Actions (actualizado)**: Para queries sin `.order()`, el mock de Supabase debe ser `PromiseLike` (tener `.then`) para que `await` funcione en cualquier punto de la cadena. Se usa `extends PromiseLike<T>` en la interfaz `FilaMock`.
 
 ---
 
@@ -55,13 +49,13 @@ pnpm dev
 ## Flujo de prueba
 
 1. Abrir `http://localhost:3001` → redirige a `/login`
-2. Click "Registrar clínica"
-3. Ingresar email + nombre de clínica → submit
-4. Auto-redirige al dashboard (`/inicio`)
-5. Ir a Agenda → "Nueva cita" → llenar formulario → crear → cita aparece en lista
-6. Cerrar sesión (sidebar → avatar → Cerrar sesión)
-7. En `/login`, aparece el usuario registrado en la lista
-8. Click en el usuario → sesión directa al dashboard
+2. Click "Registrar clínica" o seleccionar usuario existente
+3. Ir a Agenda → ver grid día/semana
+4. Click slot vacío → CrearCitaModal con fecha/hora prellenada
+5. Crear cita → aparece en grid con color según estado
+6. Click en cita → DetalleCitaModal con acciones
+7. Probar ciclo completo: scheduled → confirmar → iniciar → completar (con monto opcional)
+8. Probar cancelación y no-show
 
 ---
 
@@ -70,7 +64,7 @@ pnpm dev
 | Archivo | Contenido |
 |---|---|
 | `docs/02-frd.md` | Reglas de negocio (obligatorio leer antes de codificar) |
-| `docs/04-database.md` | Schema DB + RLS (actualizar: D-DB-04, citas 6 estados, clinicas zona_horaria) |
+| `docs/04-database.md` | Schema DB + RLS |
 | `docs/05-ui-ux.md` | Wireframes y UX |
 | `docs/auth-flow.md` | Flujo de auth actualizado (v2.0) |
 | `docs/project-context.md` | Contexto general del proyecto |
@@ -80,9 +74,11 @@ pnpm dev
 
 ## Próximos pasos
 
-1. **H-06**: Vista calendario día/semana (grid 09:00-18:00, columnas por veterinario, slots de 30 min, navegación entre días, abrir `CrearCitaModal` desde slot vacío con fecha/hora/vet precargados).
-2. **H-08**: UI editar/cancelar/completar cita (modal al click en slot ocupado, transiciones de estado, registro de monto).
-3. **Sprint 3**: Historial médico + Vacunas + Recordatorios.
+1. **Sprint 3** (próximo: H-11): Registrar consulta y cirugía.
+   - Server Action `crear-evento.ts` — INSERT con validación (fecha no futura, diagnóstico ≥10 chars)
+   - Server Action `editar-evento.ts` — solo `tratamiento`/`notas`, ventana 24h
+   - Modal/Sheet `RegistrarEventoModal` — 4 campos (fecha, diagnóstico, tratamiento opc, notas opc)
+   - Edición inline en TimelineCard si `editable = true`
 
 ---
 
@@ -91,4 +87,4 @@ pnpm dev
 - **SMTP Resend**: `onboarding@resend.dev` solo envía al dueño de cuenta Resend (`ing.juan.quiroz.trevia@gmail.com`). Para producción, verificar un dominio en Resend y configurarlo como sender en Supabase Auth SMTP.
 - **Next.js 16 deprecation**: Middleware → Proxy. Advertencia en build, migrar cuando sea estable.
 - **Puerto 3000 ocupado**: Next.js usa 3001 automáticamente.
-- **Migración 005 actualizada con ALTER DEFAULT**: si ya se aplicó la migración en Supabase, ejecutar manualmente `ALTER TABLE public.citas ALTER COLUMN estado SET DEFAULT 'scheduled';` o crear migración 007.
+- **Deuda técnica**: Sin tests UI para componentes grid/modal. Ver `project-context.md` para lista completa.

@@ -5,8 +5,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { obtenerMascota } from "@/actions/mascotas/obtener"
-import { obtenerHistorial } from "@/actions/historial/obtener"
 import { obtenerVacunas } from "@/actions/vacunas/obtener"
+import { Timeline } from "@/components/historial/timeline"
 import { AccionesMascota } from "./acciones"
 import { PawPrint, Clock, Syringe, Calendar, Weight, Info } from "lucide-react"
 
@@ -20,10 +20,7 @@ export default async function FichaMascotaPage({ params }: Props) {
 
   if (!mascota) notFound()
 
-  const [historial, vacunas] = await Promise.all([
-    obtenerHistorial(id),
-    obtenerVacunas(id),
-  ])
+  const vacunas = await obtenerVacunas(id)
 
   const ETIQUETAS_SEXO: Record<string, string> = {
     macho: "Macho",
@@ -112,35 +109,8 @@ export default async function FichaMascotaPage({ params }: Props) {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="historial" className="space-y-4 pt-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Línea de tiempo</h2>
-            <Button asChild size="sm">
-              <Link href={`/historial/${mascota.id}`}>Nuevo evento</Link>
-            </Button>
-          </div>
-          {historial.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-8 text-center">
-              <Clock className="size-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Este paciente no tiene eventos registrados.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {historial.map((evento) => (
-                <Card key={evento.id}>
-                  <CardContent className="flex items-start justify-between p-4">
-                    <div>
-                      <p className="font-medium capitalize">{evento.tipo}</p>
-                      <p className="text-sm text-muted-foreground">{evento.diagnostico}</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(evento.fecha).toLocaleDateString("es-MX")}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+        <TabsContent value="historial" className="pt-4">
+          <Timeline mascotaId={mascota.id} />
         </TabsContent>
 
         <TabsContent value="vacunas" className="space-y-4 pt-4">

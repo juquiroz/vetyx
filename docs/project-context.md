@@ -276,23 +276,47 @@ Los 6 documentos de diseño están completos y aprobados.
 
 ### Sprint 2 — Agenda (Citas)
 | Historia | Estado |
-|---|---|
+|---|---|---|
 | H-09: Prevención doble reserva | ✅ Exclusion constraint + 25 tests + migraciones 005/006 |
 | H-07 Fase A: Server Action crear cita | ✅ 8 tests |
-| H-07 Fase B: Modal crear cita | ✅ 6 tests (timezone-aware, dueño como paso obligatorio, persistencia tras error) |
-| H-06: Vista agenda (lista día) | 🟡 Parcial — navegación día, cards con datos reales, sin grid calendario |
-| H-08: UI editar/cancelar/completar cita | ⏸️ Pendiente |
+| H-07 Fase B: Modal crear cita | ✅ 6 tests |
+| H-06 Fase A: Motor agenda (mapear-dia, mapear-semana, obtener-citas-rango) | ✅ 18 tests |
+| H-06 Fase B: UI Grid (agenda-grid, toolbar, column, slot, event-card) | ✅ Integrado en página agenda |
+| H-08: UI editar/cancelar/completar cita | ✅ 23 tests (obtener, editar, cancelar, completar, marcar-no-show, transicionar-estado + modal detalle) |
+
+### Sprint 3 — H-10: Timeline de historial médico
+| Componente | Estado |
+|---|---|
+| `EventoTimeline` type (`src/types/timeline.ts`) | ✅ |
+| Server Action `obtenerTimeline` (`src/actions/historial/obtener-timeline.ts`) | ✅ Merge historial_medico + vacunas, paginado, editable flag |
+| Componente `Timeline` (`src/components/historial/timeline.tsx`) | ✅ Client component con infinite scroll (IntersectionObserver) |
+| Componente `TimelineCard` (`src/components/historial/timeline-card.tsx`) | ✅ Expandible, colores por tipo, badge editable/solo-lectura |
+| Integración en ficha mascota (`mascotas/[id]/page.tsx`) | ✅ Tab Historial reemplazado con Timeline |
+| Tests (12 tests) | ✅ 92 tests totales |
 
 ### Bloqueos conocidos
 - **SMTP/Resend**: El sender `onboarding@resend.dev` solo puede enviar al email del dueño de la cuenta Resend. Para producción se requiere un dominio verificado en Resend. Mientras tanto, el dev auth bypass funciona sin email.
 - **Next.js 16 deprecation**: Middleware → Proxy. Advertencia presente en build, migrar cuando sea estable.
-- **Bug `ck_citas_estado` corregido**: El DEFAULT de `estado` era `'confirmada'` (español), ahora `'scheduled'` (inglés). Si migración 005 ya se aplicó, ejecutar `ALTER TABLE public.citas ALTER COLUMN estado SET DEFAULT 'scheduled';`.
 
 ### Próximos pasos
-1. **H-06**: Vista calendario día/semana (grid 09:00-18:00, columnas por veterinario, slots de 30 min, navegación entre días, abrir `CrearCitaModal` desde slot vacío)
-2. **H-08**: UI editar/cancelar/completar cita (modal al click en slot ocupado, transiciones de estado)
-3. **Sprint 3**: Historial médico + Vacunas + Recordatorios
+1. **Sprint 3**: H-11 Registrar consulta/cirugía + edición 24h (siguiente)
 
 ---
+
+### Decisiones UX (Sprint 2)
+| Decisión | Descripción |
+|---|---|
+| **UX-08: Slot vacío → Crear cita** | Click en slot de 30 min abre `CrearCitaModal` con fecha/hora prellenadas. No requiere seleccionar hora manualmente. |
+| **UX-09: Slot ocupado → Detalle cita** | Click en evento existente abre `DetalleCitaModal` con info completa, edición inline, y acciones según estado. |
+| **UX-10: Estados de cita con transiciones** | `scheduled → confirmed → in_progress → completed`. `scheduled/confirmed → cancelled`. `confirmed → no_show`. Estados terminales (completed, cancelled, no_show) son solo lectura. |
+| **UX-11: Toolbar con toggle día/semana** | Tabs para cambiar vista. Select de veterinario (Todos + individual). Navegación por flechas (día: ±1 día, semana: ±7 días). |
+| **UX-12: Colores por estado en grid** | Borde izquierdo + fondo suave por estado: blue (scheduled/confirmed), amber (in_progress), green (completed), red (cancelled), gray (no_show). |
+
+### Deuda técnica (Sprint 2)
+- `obtener-citas-rango.ts` excluye citas canceladas (`.neq("estado", "cancelled")`). Para detalle de cita cancelada, debería mostrarse pero no ser editable — el filtro está en el server action, no en el grid.
+- `agenda-grid.tsx` no tiene tests de UI. El motor de agenda (mapear-dia, mapear-semana) sí tiene 13 tests.
+- `DetalleCitaModal` no tiene tests. Depende de 6 Server Actions con 23 tests unitarios.
+- Las sugerencias de horario alternativo en edición no se muestran en el modal (solo en creación). Puede agregarse en iteración futura.
+- `esquemaEditarCita` no permite cambiar `estado`; `transicionar-estado.ts` maneja las transiciones simples por separado.
 
 *Documento de restauración de contexto. Leer `docs/resume-next-session.md` al inicio de cada sesión.*

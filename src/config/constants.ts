@@ -14,7 +14,7 @@ export type EstadoCita = (typeof ESTADOS_CITA)[number]
 export const ESTADOS_BLOQUEAN = ["confirmed", "in_progress"] as const
 export type EstadoBloquea = (typeof ESTADOS_BLOQUEAN)[number]
 
-export const TIPOS_EVENTO_HISTORIAL = ["consulta", "cirugia"] as const
+export const TIPOS_EVENTO_HISTORIAL = ["consulta", "cirugia", "hospitalizacion", "control", "procedimiento", "otro"] as const
 export type TipoEventoHistorial = (typeof TIPOS_EVENTO_HISTORIAL)[number]
 
 export const SEXOS_MASCOTA = ["macho", "hembra", "no_especificado"] as const

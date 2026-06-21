@@ -287,19 +287,39 @@ Los 6 documentos de diseño están completos y aprobados.
 ### Sprint 3 — H-10: Timeline de historial médico
 | Componente | Estado |
 |---|---|
-| `EventoTimeline` type (`src/types/timeline.ts`) | ✅ |
-| Server Action `obtenerTimeline` (`src/actions/historial/obtener-timeline.ts`) | ✅ Merge historial_medico + vacunas, paginado, editable flag |
-| Componente `Timeline` (`src/components/historial/timeline.tsx`) | ✅ Client component con infinite scroll (IntersectionObserver) |
-| Componente `TimelineCard` (`src/components/historial/timeline-card.tsx`) | ✅ Expandible, colores por tipo, badge editable/solo-lectura |
+| `EventoTimeline` type (`src/types/timeline.ts`) | ✅ 8 tipos con ETIQUETAS_TIPO |
+| Server Action `obtenerTimeline` (`src/actions/historial/obtener-timeline.ts`) | ✅ Merge historial_medico + vacunas, paginado, editable flag, filtros búsqueda + rango fechas |
+| Componente `Timeline` (`src/components/historial/timeline.tsx`) | ✅ Client component con infinite scroll (IntersectionObserver) + barra de filtros |
+| Componente `TimelineCard` (`src/components/historial/timeline-card.tsx`) | ✅ Expandible, colores por tipo (solo borde izquierdo), badge editable/solo-lectura, edición inline |
 | Integración en ficha mascota (`mascotas/[id]/page.tsx`) | ✅ Tab Historial reemplazado con Timeline |
-| Tests (12 tests) | ✅ 92 tests totales |
+| Tests (16 tests) | ✅ |
+
+### Sprint 3 — H-11: Registrar consulta/cirugía + edición 24h
+| Componente | Estado |
+|---|---|
+| Server Action `crear-evento.ts` (`src/actions/historial/crear-evento.ts`) | ✅ INSERT con validación fecha no futura, diagnóstico ≥10 chars, mascota activa |
+| Server Action `editar-evento.ts` (`src/actions/historial/editar-evento.ts`) | ✅ UPDATE solo tratamiento/notas, verificación ventana 24h |
+| Modal `RegistrarEventoModal` (`src/components/historial/registrar-evento-modal.tsx`) | ✅ Dialog con 6 tipos + fecha + diagnóstico + tratamiento + notas |
+| Edición inline en `TimelineCard` | ✅ Textareas para tratamiento/notas, botones guardar/cancelar |
+| Página `/historial/[mascotaId]` | ✅ Página standalone con Timeline |
+| Tests (19 tests: 9 crear + 10 editar) | ✅ |
+| `src/lib/validations/historial.ts` | ✅ Esquemas actualizados con nuevos tipos |
+
+### Decisiones técnicas (Sprint 3)
+| Decisión | Descripción |
+|---|---|
+| **H-11-FECHA**: Comparación de fecha no futura con strings ISO | `fecha > hoy` se compara con `new Date().toISOString().slice(0, 10)` en vez de `new Date(fecha) > new Date()`, para que eventos del día de hoy no sean marcados como futuros cuando se ejecutan antes del mediodía. |
+| **H-11-MOCK**: Mocks thenable retornan `this` | Los mocks encadenables (from/select/eq/order) deben retornar `this` (mismo objeto) para que `mockResolvedValueOnce` funcione. `vi.fn(() => crearCadena())` crea objetos nuevos y rompe las expectativas. |
+| **H-11-TIPOS**: 6 tipos de evento | consulta, cirugía, hospitalizacion, control, procedimiento, otro. Cada uno con color de borde distinto (azul, rojo, púrpura, ámbar, naranja, slate). |
+| **H-11-CARD**: Cards sin bg color | Se eliminaron `bg-*-50/50` porque eran invisibles en dark mode. Solo borde izquierdo coloreado como indicador. El fondo lo da `bg-card` de shadcn. |
+| **H-11-TIMELINE**: Timeline autónomo | El componente maneja su propio header ("Línea de tiempo" + botón "Nuevo evento") y estado del modal, simplificando integración en páginas. |
 
 ### Bloqueos conocidos
 - **SMTP/Resend**: El sender `onboarding@resend.dev` solo puede enviar al email del dueño de la cuenta Resend. Para producción se requiere un dominio verificado en Resend. Mientras tanto, el dev auth bypass funciona sin email.
 - **Next.js 16 deprecation**: Middleware → Proxy. Advertencia presente en build, migrar cuando sea estable.
 
 ### Próximos pasos
-1. **Sprint 3**: H-11 Registrar consulta/cirugía + edición 24h (siguiente)
+1. **H-12 (Vacunas)**: CRUD vacunas + catálogo semilla. Server Actions `registrar-vacuna.ts`, `editar-vacuna.ts`, `obtener-catalogo.ts`. Modal `RegistrarVacunaModal` con catálogo filtrado por especie. Reemplazar lista inline en ficha mascota.
 
 ---
 
@@ -318,5 +338,12 @@ Los 6 documentos de diseño están completos y aprobados.
 - `DetalleCitaModal` no tiene tests. Depende de 6 Server Actions con 23 tests unitarios.
 - Las sugerencias de horario alternativo en edición no se muestran en el modal (solo en creación). Puede agregarse en iteración futura.
 - `esquemaEditarCita` no permite cambiar `estado`; `transicionar-estado.ts` maneja las transiciones simples por separado.
+
+### Deuda técnica (Sprint 3)
+- `cita_id` y `adjuntos` en modelo `EventoTimeline` son placeholders — no hay FK ni tabla de adjuntos implementada en DB.
+- `obtener-timeline.ts` mergea historial + vacunas en JS (no UNION ALL en SQL). Suficiente para MVP pero no escala si una mascota tiene miles de eventos.
+- Sin tests UI para Timeline, TimelineCard, RegistrarEventoModal. Solo tests de Server Actions.
+- Los filtros de búsqueda en timeline recargan desde el server (no hay filtrado client-side en caché). Con el fetch actual (todo en memoria) es equivalente.
+- El debounce de 300ms en filtros puede sentirse lento en conexiones lentas. Considerar filtrado client-side si se introduce SWR/React Query.
 
 *Documento de restauración de contexto. Leer `docs/resume-next-session.md` al inicio de cada sesión.*

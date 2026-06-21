@@ -16,7 +16,7 @@
 4. [Sprint 0 — Fundación Técnica](#4-sprint-0--fundación-técnica-semanas-1-2)
 5. [Sprint 1 — Autenticación + Dueños + Mascotas](#5-sprint-1--autenticación--dueños--mascotas-semanas-3-4)
 6. [Sprint 2 — Agenda de Citas](#6-sprint-2--agenda-de-citas-semanas-5-6)
-7. [Sprint 3 — Historial Médico + Vacunas + Recordatorios](#7-sprint-3--historial-médico--vacunas--recordatorios-semanas-7-8)
+7. [Sprint 3 — Historial Médico + Vacunas](#7-sprint-3--historial-médico--vacunas-semanas-7-8)
 8. [Sprint 4 — Dashboard + Refinamiento](#8-sprint-4--dashboard--refinamiento-semanas-9-10)
 
 ---
@@ -476,9 +476,9 @@ técnica       Dueños                    Vacunas      Refinamiento
 
 ---
 
-## 7. Sprint 3 — Historial Médico + Vacunas + Recordatorios (Semanas 7-8)
+## 7. Sprint 3 — Historial Médico + Vacunas (Semanas 7-8)
 
-**Objetivo:** Implementar la línea de tiempo del historial médico, registro de consultas y cirugías con edición restringida a 24h, registro de vacunas con catálogo semilla y worker de recordatorios por email.
+**Objetivo:** Implementar la línea de tiempo del historial médico, registro de consultas y cirugías con edición restringida a 24h, y registro de vacunas con catálogo semilla. Recordatorios por email movidos fuera de Sprint.
 
 **Dependencias de entrada:** Sprint 1 (Mascotas listas para asociar historial y vacunas).
 
@@ -500,39 +500,25 @@ técnica       Dueños                    Vacunas      Refinamiento
 - ARIA: `aria-label="Evento de {tipo}: {resumen}"`
 - Skeleton para carga de timeline (3 cards)
 
-### H-11: Registrar consulta y cirugía
+### H-11: Registrar consulta/cirugía + edición 24h (COMPLETADO ✅)
 
 | Atributo | Valor |
 |---|---|
 | **Épica** | E-05 |
-| **Historia** | Como veterinario, quiero registrar una consulta con diagnóstico y tratamiento, o una cirugía con procedimiento, para documentar la atención. |
-| **Criterios de aceptación** | • Botón "Nuevo evento" en timeline<br>• Selector tipo: Consulta / Cirugía<br>• Consulta: Fecha (hoy default), Diagnóstico* (≥10 chars), Tratamiento(opc), Notas(opc)<br>• Cirugía: Fecha (hoy default), Diagnóstico*, Procedimiento*, Notas(opc)<br>• Solo vet/admin pueden crear<br>• Recepcionista ve timeline pero no botón "Nuevo evento"<br>• Al guardar, evento aparece en timeline inmediatamente<br>• No se puede registrar fecha futura |
+| **Historia** | Como veterinario, quiero registrar consultas y cirugías con diagnóstico y tratamiento, y poder corregir tratamiento/notas hasta 24h después, para documentar la atención manteniendo integridad del registro. |
+| **Criterios de aceptación** | • Botón "Nuevo evento" en timeline con 6 tipos: consulta, cirugía, hospitalización, control, procedimiento, otro<br>• Campos: Fecha* (hoy default, no futura), Diagnóstico* (≥10 chars), Tratamiento(opc), Notas(opc)<br>• Solo vet/admin pueden crear; recepcionista ve timeline sin botón<br>• Al guardar, evento aparece en timeline inmediatamente<br>• Edición ≤24h: solo `tratamiento` y `notas` editables (inline en card expandido)<br>• `fecha`, `tipo`, `diagnóstico` son inmutables siempre<br>• Después de 24h: badge "Solo lectura" con candado, sin botón editar<br>• Comparación de fecha por string ISO (YYYY-MM-DD) para evitar bugs con hora del día |
 | **Prioridad** | 🔴 Crítica |
-| **Estimación** | 5 pts |
+| **Estimación** | 8 pts (H-11 + H-12 original fusionados) |
 
 **Tareas técnicas:**
-- Server Actions: `actions/historial/crear-consulta.ts`, `actions/historial/crear-cirugia.ts`
-- Modal `modals/nuevo-evento-modal.tsx` (Sheet mobile, ≤4 campos)
-- Selector tipo cambia campos dinámicamente
-- Validación: diagnóstico ≥10 caracteres
+- Server Action `actions/historial/crear-evento.ts`: INSERT con validación fecha no futura, diagnóstico ≥10 chars, mascota activa
+- Server Action `actions/historial/editar-evento.ts`: UPDATE solo tratamiento/notas, verificación ventana 24h
+- Modal `registrar-evento-modal.tsx` (Dialog, no Sheet, por tener >4 campos)
+- Edición inline en `TimelineCard` con textareas para tratamiento/notas
+- Badge "Editable"/"Solo lectura" según ventana 24h + permiso
+- 6 tipos con colores: consulta (azul), cirugía (rojo), hospitalización (púrpura), control (ámbar), procedimiento (naranja), otro (gris)
 
-### H-12: Edición restringida a 24h
-
-| Atributo | Valor |
-|---|---|
-| **Épica** | E-05 |
-| **Historia** | Como veterinario, quiero poder corregir el tratamiento o notas de un evento hasta 24h después de crearlo, pero no después, para mantener la integridad del registro. |
-| **Criterios de aceptación** | • Ícono de edición visible solo si `created_at > now() - 24h`<br>• Solo se puede editar `tratamiento` y `notas`<br>• `diagnostico` y `tipo` son inmutables siempre<br>• Después de 24h, campos son solo lectura<br>• No se puede eliminar ningún evento de historial |
-| **Prioridad** | 🟡 Alta |
-| **Estimación** | 3 pts |
-
-**Tareas técnicas:**
-- Server Action `actions/historial/editar-evento.ts`: verificar ventana 24h, solo UPDATE en `tratamiento` y `notas`
-- Frontend: comparar `created_at`, mostrar ícono lápiz condicional
-- Edición inline en el card expandido del timeline
-- Mensaje "Registro no modificable (pasaron 24h)" si aplica
-
-### H-13: Registrar vacuna
+### H-12: Registrar vacuna
 
 | Atributo | Valor |
 |---|---|
@@ -550,7 +536,7 @@ técnica       Dueños                    Vacunas      Refinamiento
 - Autocomplete `aplicado_por` (usuarios rol vet o admin)
 - Empty state: "Este paciente no tiene vacunas registradas." + CTA
 
-### H-14: Recordatorio automático de vacunas (worker)
+### H-13: Recordatorio automático de vacunas — worker (FUERA DE SPRINT)
 
 | Atributo | Valor |
 |---|---|
@@ -572,11 +558,12 @@ técnica       Dueños                    Vacunas      Refinamiento
 
 | Requisito |
 |---|
-| ✅ Timeline unificado muestra consultas, cirugías y vacunas |
-| ✅ Crear consulta y cirugía con validaciones |
-| ✅ Edición bloqueada después de 24h |
-| ✅ Vacuna registrada aparece en ficha + timeline |
-| ✅ Worker de recordatorios envía emails vía Resend |
+| ✅ Timeline unificado muestra consultas, cirugías, hospitalizaciones, controles, procedimientos, otros y vacunas |
+| ✅ Crear consulta/cirugía con 6 tipos, validación fecha no futura, diagnóstico ≥10 chars |
+| ✅ Edición bloqueada después de 24h (solo tratamiento/notas editables) |
+| ✅ Filtros de búsqueda por palabra clave + rango de fechas en timeline |
+| ✅ Vacuna registrada aparece en ficha + timeline (H-12 pendiente) |
+| ✅ Worker de recordatorios postergado (fuera de Sprint) |
 
 ---
 
@@ -720,9 +707,9 @@ técnica       Dueños                    Vacunas      Refinamiento
 | Sprint 0 | Semanas 1-2 | 10 (todas técnicas) | 34 pts | Fundación técnica: proyecto, DB, auth, CI/CD, layout |
 | Sprint 1 | Semanas 3-4 | 5 (H-01 a H-05) | 31 pts | Auth completo + Dueños + Mascotas + Búsqueda global |
 | Sprint 2 | Semanas 5-6 | 4 (H-06 a H-09) | 24 pts | Agenda funcional con slots, creación, edición, estados |
-| Sprint 3 | Semanas 7-8 | 5 (H-10 a H-14) | 26 pts | Historial médico, vacunas, recordatorios por email |
+| Sprint 3 | Semanas 7-8 | 3 (H-10 a H-12) | 18 pts | Historial médico, vacunas (recordatorios postergados) |
 | Sprint 4 | Semanas 9-10 | 7 (H-15 a H-21) | 29 pts | Dashboard completo + refinamiento UX |
-| **Total** | **10 semanas** | **31** | **144 pts** | **MVP v1.0 listo para beta cerrada** |
+| **Total** | **10 semanas** | **29** | **136 pts** | **MVP v1.0 listo para beta cerrada** |
 
 ---
 

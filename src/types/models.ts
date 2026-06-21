@@ -42,3 +42,4 @@ export interface VacunaConCatalogo extends Vacuna {
   catalogo_vacuna: CatalogoVacuna
   usuario: Usuario
 }
+export type EstadoVacuna = "sin_refuerzo" | "vigente" | "proxima" | "vencida"

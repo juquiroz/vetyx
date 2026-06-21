@@ -40,7 +40,7 @@ export async function obtenerTimeline(
 
   const { data: vacunas } = await supabase
     .from("vacunas")
-    .select("id, tipo_vacuna_id, lote, fecha_aplicacion, fecha_proxima_dosis, recordatorio_enviado, aplicado_por, created_at")
+    .select("id, tipo_vacuna_id, nombre_personalizado, lote, fecha_aplicacion, fecha_proxima_dosis, observaciones, recordatorio_enviado, aplicado_por, created_at")
     .eq("mascota_id", mascotaId)
     .eq("clinic_id", usuario.clinic_id)
     .order("created_at", { ascending: false })
@@ -97,13 +97,14 @@ export async function obtenerTimeline(
     id: v.id,
     fecha: v.fecha_aplicacion,
     tipo: "vacuna" as const,
-    titulo: mapaCatalogo.get(v.tipo_vacuna_id) ?? "Vacuna",
-    resumen: mapaCatalogo.get(v.tipo_vacuna_id) ?? "Vacuna",
+    titulo: v.nombre_personalizado ?? mapaCatalogo.get(v.tipo_vacuna_id) ?? "Vacuna",
+    resumen: v.nombre_personalizado ?? mapaCatalogo.get(v.tipo_vacuna_id) ?? "Vacuna",
     metadata: {
-      nombre_vacuna: mapaCatalogo.get(v.tipo_vacuna_id) ?? "",
+      nombre_vacuna: v.nombre_personalizado ?? mapaCatalogo.get(v.tipo_vacuna_id) ?? "",
       lote: v.lote,
       fecha_aplicacion: v.fecha_aplicacion,
       fecha_proxima_dosis: v.fecha_proxima_dosis,
+      observaciones: v.observaciones,
       aplicado_por_name: mapaUsuarios.get(v.aplicado_por) ?? "",
       recordatorio_enviado: v.recordatorio_enviado,
     },

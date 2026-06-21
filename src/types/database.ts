@@ -335,9 +335,11 @@ export type Database = {
           clinic_id: string
           mascota_id: string
           tipo_vacuna_id: string
+          nombre_personalizado: string | null
           lote: string | null
           fecha_aplicacion: string
           fecha_proxima_dosis: string | null
+          observaciones: string | null
           recordatorio_enviado: number
           aplicado_por: string
           created_at: string
@@ -348,9 +350,11 @@ export type Database = {
           clinic_id: string
           mascota_id: string
           tipo_vacuna_id: string
+          nombre_personalizado?: string | null
           lote?: string | null
           fecha_aplicacion: string
           fecha_proxima_dosis?: string | null
+          observaciones?: string | null
           recordatorio_enviado?: number
           aplicado_por: string
           created_at?: string
@@ -361,9 +365,11 @@ export type Database = {
           clinic_id?: string
           mascota_id?: string
           tipo_vacuna_id?: string
+          nombre_personalizado?: string | null
           lote?: string | null
           fecha_aplicacion?: string
           fecha_proxima_dosis?: string | null
+          observaciones?: string | null
           recordatorio_enviado?: number
           aplicado_por?: string
           created_at?: string

@@ -1,5 +1,5 @@
 import { listarMascotas } from "@/actions/mascotas/listar"
-import { obtenerEspecies } from "./obtener-especies"
+import { obtenerEspecies } from "@/actions/mascotas/obtener-especies"
 import { MascotasClient } from "./client"
 
 export default async function MascotasPage() {

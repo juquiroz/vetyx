@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useContexto } from "@/providers/contexto-provider"
 import {
   LayoutDashboard,
   Calendar,
@@ -10,6 +11,8 @@ import {
   PawPrint,
   Settings,
   UserCog,
+  User,
+  Building2,
 } from "lucide-react"
 
 const items = [
@@ -24,8 +27,18 @@ const itemsConfig = [
   { href: "/configuracion/usuarios", label: "Miembros", icon: UserCog },
 ]
 
+function etiquetaRol(rol: string): string {
+  const mapa: Record<string, string> = {
+    admin: "Administrador",
+    vet: "Veterinario",
+    recepcionista: "Recepcionista",
+  }
+  return mapa[rol] ?? rol
+}
+
 export function Sidebar() {
   const pathname = usePathname()
+  const { contextoActivo, setContextoActivo, clinicaNombre, usuarioRol, usuarioNombre } = useContexto()
 
   return (
     <aside className="hidden md:flex w-60 flex-col border-r bg-background">
@@ -66,6 +79,39 @@ export function Sidebar() {
             {item.label}
           </Link>
         ))}
+      </div>
+      <div className="border-t p-3" title="Los registros se guardarán en este contexto">
+        <div className="flex items-center gap-3">
+          <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+            {usuarioNombre.charAt(0).toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="truncate text-sm font-medium">{contextoActivo.tipo === "personal" ? "Personal" : clinicaNombre}</p>
+            <p className="truncate text-xs text-muted-foreground">{etiquetaRol(usuarioRol)}</p>
+          </div>
+        </div>
+        <div className="mt-2 flex gap-1 rounded-md bg-muted p-1">
+          <button
+            onClick={() => setContextoActivo({ tipo: "personal" })}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 text-xs transition-colors",
+              contextoActivo.tipo === "personal" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <User className="size-3" />
+            Personal
+          </button>
+          <button
+            onClick={() => setContextoActivo({ tipo: "clinic" })}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 text-xs transition-colors",
+              contextoActivo.tipo === "clinic" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Building2 className="size-3" />
+            Clínica
+          </button>
+        </div>
       </div>
     </aside>
   )

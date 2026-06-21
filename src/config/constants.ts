@@ -21,3 +21,5 @@ export const SEXOS_MASCOTA = ["macho", "hembra", "no_especificado"] as const
 export type SexoMascota = (typeof SEXOS_MASCOTA)[number]
 
 export const VENTANA_EDICION_HISTORIAL_HORAS = 24
+export const NOMBRE_VACUNA_OTRA = "Otra"
+export const DIAS_VACUNA_PROXIMA = 30

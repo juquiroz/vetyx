@@ -5,8 +5,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { obtenerMascota } from "@/actions/mascotas/obtener"
-import { obtenerVacunas } from "@/actions/vacunas/obtener"
 import { Timeline } from "@/components/historial/timeline"
+import { TabVacunas } from "@/components/vacunas/tab-vacunas"
 import { AccionesMascota } from "./acciones"
 import { PawPrint, Clock, Syringe, Calendar, Weight, Info } from "lucide-react"
 
@@ -19,8 +19,6 @@ export default async function FichaMascotaPage({ params }: Props) {
   const mascota = await obtenerMascota(id)
 
   if (!mascota) notFound()
-
-  const vacunas = await obtenerVacunas(id)
 
   const ETIQUETAS_SEXO: Record<string, string> = {
     macho: "Macho",
@@ -113,37 +111,8 @@ export default async function FichaMascotaPage({ params }: Props) {
           <Timeline mascotaId={mascota.id} />
         </TabsContent>
 
-        <TabsContent value="vacunas" className="space-y-4 pt-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Vacunas</h2>
-            <Button asChild size="sm">
-              <Link href={`/vacunas/${mascota.id}`}>Registrar vacuna</Link>
-            </Button>
-          </div>
-          {vacunas.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-8 text-center">
-              <Syringe className="size-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Este paciente no tiene vacunas registradas.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {vacunas.map((vacuna) => (
-                <Card key={vacuna.id}>
-                  <CardContent className="flex items-start justify-between p-4">
-                    <div>
-                      <p className="font-medium">{vacuna.nombre_vacuna}</p>
-                      {vacuna.lote && (
-                        <p className="text-xs text-muted-foreground">Lote: {vacuna.lote}</p>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(vacuna.fecha_aplicacion).toLocaleDateString("es-MX")}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+        <TabsContent value="vacunas">
+          <TabVacunas mascotaId={mascota.id} especieId={mascota.especie_id} />
         </TabsContent>
       </Tabs>
     </div>

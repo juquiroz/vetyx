@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { obtenerSesion } from "@/lib/auth/get-session"
 import { obtenerUsuarioActual } from "@/lib/auth/get-current-user"
 import { ClinicProvider } from "@/providers/clinic-provider"
+import { ContextoProvider } from "@/providers/contexto-provider"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Topbar } from "@/components/layout/topbar"
 import { Toaster } from "@/components/ui/sonner"
@@ -22,18 +23,27 @@ export default async function DashboardLayout({
     redirect("/login")
   }
 
+  const supabase = await crearClienteAccion()
+  const { data: clinica } = await supabase
+    .from("clinicas")
+    .select("nombre")
+    .eq("id", usuario.clinic_id)
+    .single()
+
   return (
     <ClinicProvider usuario={usuario}>
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <Topbar />
-          <main className="flex-1 overflow-y-auto p-4 md:p-6">
-            {children}
-          </main>
+      <ContextoProvider clinicaId={usuario.clinic_id} clinicaNombre={clinica?.nombre ?? "Mi Clínica"} usuarioRol={usuario.rol} usuarioNombre={usuario.nombre}>
+        <div className="flex h-screen overflow-hidden">
+          <Sidebar />
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <Topbar />
+            <main className="flex-1 overflow-y-auto p-4 md:p-6">
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
-      <Toaster />
+        <Toaster />
+      </ContextoProvider>
     </ClinicProvider>
   )
 }

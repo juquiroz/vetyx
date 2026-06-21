@@ -246,6 +246,9 @@ function DetalleVacuna({ metadata }: { metadata: Record<string, unknown> }) {
       {(metadata.fecha_proxima_dosis as string | null) && (
         <DetalleCampo etiqueta="Próxima dosis" valor={new Date(metadata.fecha_proxima_dosis as string).toLocaleDateString("es-MX")} />
       )}
+      {(metadata.observaciones as string | null) && (
+        <DetalleCampo etiqueta="Observaciones" valor={metadata.observaciones as string} />
+      )}
       {(metadata.recordatorio_enviado as number) > 0 && (
         <DetalleCampo etiqueta="Recordatorios" valor={`${metadata.recordatorio_enviado}/3`} />
       )}

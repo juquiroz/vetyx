@@ -26,7 +26,7 @@ import {
 import { DataTable } from "@/components/shared/data-table"
 import { EmptyState } from "@/components/shared/empty-state"
 import type { MascotaResumen } from "@/actions/mascotas/listar"
-import type { EspecieOpcion } from "./obtener-especies"
+import type { EspecieOpcion } from "@/actions/mascotas/obtener-especies"
 import { listarMascotas } from "@/actions/mascotas/listar"
 import { crearMascota } from "@/actions/mascotas/crear"
 import { crearMascotaConDueno } from "@/actions/mascotas/crear-con-dueno"

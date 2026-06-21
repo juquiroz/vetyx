@@ -24,9 +24,9 @@ import {
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { editarMascota } from "@/actions/mascotas/editar"
 import { desactivarMascota } from "@/actions/mascotas/desactivar"
-import { obtenerEspecies } from "../obtener-especies"
+import { obtenerEspecies } from "@/actions/mascotas/obtener-especies"
 import type { MascotaCompleta } from "@/actions/mascotas/obtener"
-import type { EspecieOpcion } from "../obtener-especies"
+import type { EspecieOpcion } from "@/actions/mascotas/obtener-especies"
 
 interface Props {
   mascota: MascotaCompleta

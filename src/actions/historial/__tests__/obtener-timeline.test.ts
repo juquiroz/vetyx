@@ -75,17 +75,32 @@ const VACUNA_MOCK = [
   {
     id: "vac-1",
     tipo_vacuna_id: "v01",
+    nombre_personalizado: null,
     lote: "LOTE-001",
+    observaciones: "Primera dosis del esquema",
     fecha_aplicacion: "2026-06-10",
     fecha_proxima_dosis: "2026-07-10",
     recordatorio_enviado: 0,
     aplicado_por: USUARIO_ID,
     created_at: "2026-06-10T09:00:00.000Z",
   },
+  {
+    id: "vac-2",
+    tipo_vacuna_id: "v02",
+    nombre_personalizado: "Vacuna personalizada experimental",
+    lote: null,
+    observaciones: null,
+    fecha_aplicacion: "2026-05-01",
+    fecha_proxima_dosis: null,
+    recordatorio_enviado: 0,
+    aplicado_por: USUARIO_ID,
+    created_at: "2026-05-01T10:00:00.000Z",
+  },
 ]
 
 const CATALOGO_MOCK = [
   { id: "v01", nombre: "Múltiple canina" },
+  { id: "v02", nombre: "Otra" },
 ]
 
 const USUARIOS_MOCK = [
@@ -170,8 +185,8 @@ describe("obtenerTimeline", () => {
     const resultado = await obtenerTimeline(MASCOTA_ID)
     expect(resultado).toHaveProperty("success", true)
     if (resultado.success) {
-      expect(resultado.data.eventos).toHaveLength(3)
-      expect(resultado.data.total).toBe(3)
+      expect(resultado.data.eventos).toHaveLength(4)
+      expect(resultado.data.total).toBe(4)
 
       // Orden: 2026-06-18, 2026-06-15, 2026-06-10
       expect(resultado.data.eventos[0].fecha).toBe("2026-06-18")
@@ -230,15 +245,15 @@ describe("obtenerTimeline", () => {
     expect(pagina1).toHaveProperty("success", true)
     if (pagina1.success) {
       expect(pagina1.data.eventos).toHaveLength(2)
-      expect(pagina1.data.total).toBe(3)
+      expect(pagina1.data.total).toBe(4)
       expect(pagina1.data.tieneMas).toBe(true)
     }
 
     const pagina2 = await obtenerTimeline(MASCOTA_ID, 2, 2)
     expect(pagina2).toHaveProperty("success", true)
     if (pagina2.success) {
-      expect(pagina2.data.eventos).toHaveLength(1)
-      expect(pagina2.data.total).toBe(3)
+      expect(pagina2.data.eventos).toHaveLength(2)
+      expect(pagina2.data.total).toBe(4)
       expect(pagina2.data.tieneMas).toBe(false)
     }
   })
@@ -320,9 +335,9 @@ describe("obtenerTimeline", () => {
     const resultado = await obtenerTimeline(MASCOTA_ID, 1, 20, undefined, undefined, "2026-06-12")
     expect(resultado).toHaveProperty("success", true)
     if (resultado.success) {
-      expect(resultado.data.eventos).toHaveLength(1)
+      expect(resultado.data.eventos).toHaveLength(2)
       expect(resultado.data.eventos[0].id).toBe("vac-1")
-      expect(resultado.data.total).toBe(1)
+      expect(resultado.data.total).toBe(2)
     }
   })
 

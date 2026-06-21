@@ -305,21 +305,118 @@ Los 6 documentos de diseño están completos y aprobados.
 | Tests (19 tests: 9 crear + 10 editar) | ✅ |
 | `src/lib/validations/historial.ts` | ✅ Esquemas actualizados con nuevos tipos |
 
+### Sprint 3 — H-12: Vacunas (CRUD + catálogo + timeline)
+| Componente | Estado |
+|---|---|
+| Migración 008: `nombre_personalizado VARCHAR(100)`, `observaciones TEXT` | ✅ Aplicada |
+| `types/database.ts` + `types/models.ts` (`EstadoVacuna`) | ✅ |
+| Server Action `registrar.ts` (INSERT con validación especie/fechas/"Otra", 6-step) | ✅ 12 tests |
+| Server Action `editar.ts` (UPDATE solo lote/fecha_proxima/observaciones, 6-step) | ✅ 8 tests |
+| Server Action `obtener-catalogo.ts` (filtrado por especie + "Otra") | ✅ 5 tests |
+| Server Action `obtener-veterinarios.ts` (vet/admin activos de la clínica) | ✅ |
+| Componente `RegistrarVacunaModal` (Dialog con catálogo filtrado + veterinarios) | ✅ |
+| Componente `TabVacunas` (lista con badges estado, edición inline, empty state) | ✅ |
+| Integración ficha mascota + ruta `/vacunas/[mascotaId]` | ✅ |
+| Timeline actualizado con `nombre_personalizado` y `observaciones` | ✅ |
+| Tests (25 nuevos, 140 totales) | ✅ |
+
 ### Decisiones técnicas (Sprint 3)
 | Decisión | Descripción |
 |---|---|
 | **H-11-FECHA**: Comparación de fecha no futura con strings ISO | `fecha > hoy` se compara con `new Date().toISOString().slice(0, 10)` en vez de `new Date(fecha) > new Date()`, para que eventos del día de hoy no sean marcados como futuros cuando se ejecutan antes del mediodía. |
 | **H-11-MOCK**: Mocks thenable retornan `this` | Los mocks encadenables (from/select/eq/order) deben retornar `this` (mismo objeto) para que `mockResolvedValueOnce` funcione. `vi.fn(() => crearCadena())` crea objetos nuevos y rompe las expectativas. |
+| **H-12-MOCK**: Cliente Supabase no debe ser thenable | `mockResolvedValue(thenable)` unwrappe el thenable por Promise. Usar `mockImplementation(() => Promise.resolve(noThenable))` o asegurar que el cliente mock no tenga metodo `.then`. |
 | **H-11-TIPOS**: 6 tipos de evento | consulta, cirugía, hospitalizacion, control, procedimiento, otro. Cada uno con color de borde distinto (azul, rojo, púrpura, ámbar, naranja, slate). |
 | **H-11-CARD**: Cards sin bg color | Se eliminaron `bg-*-50/50` porque eran invisibles en dark mode. Solo borde izquierdo coloreado como indicador. El fondo lo da `bg-card` de shadcn. |
 | **H-11-TIMELINE**: Timeline autónomo | El componente maneja su propio header ("Línea de tiempo" + botón "Nuevo evento") y estado del modal, simplificando integración en páginas. |
+
+---
+
+## Decisión Arquitectónica: Contexto Dual (Diario Personal + Historial Clínico)
+
+**Documentada en Sprint 3 — NO implementada. Pendiente para Sprint futuro.**
+
+### Motivación
+Soportar dos contextos de operación para que dueños registren información sin pertenecer a una clínica, y que los registros personales sean privados (invisibles para clínicas).
+
+### Modelo conceptual
+Mascota tiene dos árboles separados:
+- **Diario Personal (dueño)**: cambios de pienso, peso, comportamiento, síntomas, notas, fotos (futuro)
+- **Historial Clínico (veterinarias)**: consultas, cirugías, vacunas, eventos registrados por clínicas
+
+### Reglas de visibilidad
+| Contexto | Diario Personal | Historial Clínico |
+|---|---|---|
+| Dueño | Crea y ve todo | Ve todo (solo lectura) |
+| Clínica X | No visible | Crea y ve solo eventos de su propia clínica |
+| Clínica Y | No visible | No visible |
+
+### Modelo de datos (futura migración)
+- Nuevo campo `origen_registro` en tablas de eventos: `'owner' | 'clinic'`
+- `clinic_id` nullable (NULL cuando `origen_registro = 'owner'`)
+- Nuevo campo `visibilidad`: `'private_owner' | 'clinic_only' | 'owner_and_clinic'`
+
+### Contexto activo (UI) — Implementado
+Switch manual en Sidebar y dropdown en Topbar con persistencia en localStorage (`vetyx-contexto`). Opciones: `👤 Personal`, `🏥 Clínica`.
+
+Tipo `ContextoActivo`:
+```ts
+interface ContextoActivo {
+  tipo: "personal" | "clinic"
+  clinicId?: string
+  clinicNombre?: string
+}
+```
+
+Indicadores UX:
+- Sidebar: bloque avatar + nombre clínica/Personal + rol + switch
+- Topbar desktop: nombre + badge "Contexto: Clínica" + dropdown switch
+- Topbar mobile: nombre + rol + badge
+- Tooltip nativo en toda área de contexto: "Los registros se guardarán en este contexto"
+
+| Situación | Contexto por defecto |
+|---|---|
+| Usuario sin clínica asignada | Personal |
+| Usuario con 1+ clínicas | Último contexto usado |
+
+Provider: `ContextoProvider` en `src/providers/contexto-provider.tsx`. Props: `clinicaId?`, `clinicaNombre`, `usuarioRol`, `usuarioNombre`.
+
+**Patrón de inicialización:** Estado inicial sincronizado con server (sin leer `localStorage` en `useState`). `useEffect` post-hidratación lee `localStorage` y actualiza el estado. Esto evita hydration mismatch entre server ("clinic") y cliente ("personal" persistido).
+
+**NO se usa para permisos ni filtrado de datos.** Preparación visual para Contexto Dual futuro.
+
+### Comportamiento por contexto (future — no implementado en datos)
+| Acción | Modo Personal | Modo Clínica |
+|---|---|---|
+| Registrar evento | `origen_registro = 'owner'`, `clinic_id = NULL` | `origen_registro = 'clinic'`, `clinic_id = X` |
+| Ver timeline | Diario + Historial de todas las clínicas | Solo Historial de clínica X |
+| Crear cita | No disponible | Disponible |
+| Registrar vacuna | No disponible (futuro: sí, privada) | Disponible |
+
+### UI futura (ficha mascota)
+Tabs: `[Resumen] [Historial Clínico] [Diario Personal]`
+
+Indicadores en cards: `🏥 Registrado por Clínica X`, `👤 Registrado por dueño`
+
+### Scope excluido ahora
+- ❌ No migrar tablas (`origen_registro`, `clinic_id` nullable)
+- ❌ No cambiar RLS existente
+- ❌ No usar `ContextoActivo` para permisos ni filtrado de datos
+- ✅ Switch visual implementado en Sidebar + Topbar con persistencia localStorage
+- ✅ Indicadores visuales (badge, tooltip, bloque mobile)
+- ✅ Provider con tipo expandido y `clinicId`
+
+### Preguntas abiertas (resolver antes de implementar)
+1. ¿El modo Personal permite registrar vacunas propias (ej: dueño que aplica desparasitante)?
+2. ¿El modo Personal agenda citas? (probablemente no — lo hace la clínica)
+3. ¿Cómo se relaciona dueño → mascota en modo Personal? ¿El dueño es el `created_by` del auth.user?
 
 ### Bloqueos conocidos
 - **SMTP/Resend**: El sender `onboarding@resend.dev` solo puede enviar al email del dueño de la cuenta Resend. Para producción se requiere un dominio verificado en Resend. Mientras tanto, el dev auth bypass funciona sin email.
 - **Next.js 16 deprecation**: Middleware → Proxy. Advertencia presente en build, migrar cuando sea estable.
 
 ### Próximos pasos
-1. **H-12 (Vacunas)**: CRUD vacunas + catálogo semilla. Server Actions `registrar-vacuna.ts`, `editar-vacuna.ts`, `obtener-catalogo.ts`. Modal `RegistrarVacunaModal` con catálogo filtrado por especie. Reemplazar lista inline en ficha mascota.
+1. **Contexto Dual (Diario Personal + Historial Clínico)**: Implementar migración DB (`origen_registro`, `clinic_id` nullable, `visibilidad`), filtrado por contexto en timeline, y modos de operación. Pendiente para Sprint futuro.
 
 ---
 

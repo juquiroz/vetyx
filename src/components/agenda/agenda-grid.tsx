@@ -73,7 +73,10 @@ export function AgendaGrid({ onCreateCita, onClickEvento }: AgendaGridProps) {
   const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
-    obtenerVeterinarios().then(setVeterinarios)
+    obtenerVeterinarios().then((vets) => {
+      setVeterinarios(vets)
+      setCargando(false)
+    })
   }, [])
 
   const cargarGrid = useCallback(async () => {
@@ -94,24 +97,17 @@ export function AgendaGrid({ onCreateCita, onClickEvento }: AgendaGridProps) {
     }
 
     try {
-      const [citas, vets] = await Promise.all([
-        obtenerCitasRango({
-          fecha_inicio: fechaInicio,
-          fecha_fin: fechaFin,
-          veterinario_id: veterinarioId || undefined,
-        }),
-        vista === "dia" ? obtenerVeterinarios() : Promise.resolve(veterinarios),
-      ])
-
-      setVeterinarios(vets.length > 0 ? vets : veterinarios)
-
-      const veterinariosLista = vets.length > 0 ? vets : veterinarios
+      const citas = await obtenerCitasRango({
+        fecha_inicio: fechaInicio,
+        fecha_fin: fechaFin,
+        veterinario_id: veterinarioId || undefined,
+      })
 
       if (vista === "dia") {
         const resultado = mapearDia({
           fecha,
           citas,
-          veterinarios: veterinariosLista,
+          veterinarios,
         })
         setColumnas(resultado.columnas)
         setFilas(resultado.filas)
@@ -120,7 +116,7 @@ export function AgendaGrid({ onCreateCita, onClickEvento }: AgendaGridProps) {
         const resultado = mapearSemana({
           fecha,
           citas,
-          veterinarios: veterinariosLista,
+          veterinarios,
           timezone: ZONA_HORARIA_DEFAULT,
         })
         setColumnas(resultado.columnas)

@@ -5,9 +5,10 @@ import { obtenerSesion, limpiarCacheSesion } from "@/lib/auth/get-session"
 import { obtenerUsuarioActual } from "@/lib/auth/get-current-user"
 import { verificarPermiso } from "@/lib/auth/check-permission"
 import { crearClienteAccion } from "@/lib/supabase/action"
+import { obtenerOCrearDuenoPersonal } from "@/actions/duenos/obtener-o-crear-dueno-personal"
 
 const esquema = z.object({
-  owner_id: z.string().uuid("Dueño inválido"),
+  owner_id: z.string().uuid("Dueño inválido").optional(),
   nombre: z.string().min(1, "El nombre es requerido").max(80),
   especie_id: z.string().uuid("Especie inválida"),
   raza: z.string().max(80).optional().or(z.literal("")),
@@ -34,18 +35,27 @@ export async function crearMascota(input: FormData) {
   const { owner_id, nombre, especie_id, raza, fecha_nacimiento, color, peso, sexo, esterilizado } = parsed.data
   const supabase = await crearClienteAccion()
 
-  const { data: dueno } = await supabase
-    .from("duenos")
-    .select("id, activo")
-    .eq("id", owner_id)
-    .single()
+  let resolvedOwnerId: string
 
-  if (!dueno) return { error: "Dueño no encontrado" }
-  if (!dueno.activo) return { error: "No se puede registrar una mascota a un dueño inactivo" }
+  if (owner_id) {
+    const { data: dueno } = await supabase
+      .from("duenos")
+      .select("id, activo")
+      .eq("id", owner_id)
+      .single()
+
+    if (!dueno) return { error: "Dueño no encontrado" }
+    if (!dueno.activo) return { error: "No se puede registrar una mascota a un dueño inactivo" }
+    resolvedOwnerId = owner_id
+  } else {
+    const res = await obtenerOCrearDuenoPersonal()
+    if (!res.success) return { error: res.error }
+    resolvedOwnerId = res.data.id
+  }
 
   const { error } = await supabase.from("mascotas").insert({
     clinic_id: usuario.clinic_id,
-    owner_id,
+    owner_id: resolvedOwnerId,
     especie_id,
     nombre,
     raza: raza || null,

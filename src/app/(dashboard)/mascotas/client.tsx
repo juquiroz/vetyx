@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { PawPrint, Plus, Search, Bolt } from "lucide-react"
+import { PawPrint, Plus, Search, Bolt, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,6 +31,7 @@ import { listarMascotas } from "@/actions/mascotas/listar"
 import { crearMascota } from "@/actions/mascotas/crear"
 import { crearMascotaConDueno } from "@/actions/mascotas/crear-con-dueno"
 import { buscarDuenos } from "@/actions/duenos/buscar"
+import { useContexto } from "@/providers/contexto-provider"
 
 interface Props {
   mascotasIniciales: MascotaResumen[]
@@ -45,6 +46,8 @@ const ETIQUETAS_SEXO: Record<string, string> = {
 
 export function MascotasClient({ mascotasIniciales, especies }: Props) {
   const router = useRouter()
+  const { contextoActivo } = useContexto()
+  const esPersonal = contextoActivo.tipo === "personal"
   const [mascotas, setMascotas] = useState(mascotasIniciales)
   const [busqueda, setBusqueda] = useState("")
   const [pendiente] = useTransition()
@@ -122,6 +125,34 @@ export function MascotasClient({ mascotasIniciales, especies }: Props) {
     recargar()
   }
 
+  async function handleCrearPersonal(e: React.FormEvent) {
+    e.preventDefault()
+    setErrorForm(null)
+
+    const form = new FormData()
+    form.set("nombre", formMascota.nombre)
+    form.set("especie_id", formMascota.especie_id)
+    if (formMascota.raza) form.set("raza", formMascota.raza)
+    if (formMascota.sexo) form.set("sexo", formMascota.sexo)
+    if (formMascota.fecha_nacimiento) form.set("fecha_nacimiento", formMascota.fecha_nacimiento)
+    if (formMascota.color) form.set("color", formMascota.color)
+    if (formMascota.peso) form.set("peso", formMascota.peso)
+    form.set("esterilizado", formMascota.esterilizado)
+
+    const res = await crearMascota(form)
+    if (res.error) {
+      if (res.detalles) {
+        const msgs = Object.values(res.detalles.fieldErrors).flat()
+        setErrorForm(msgs.join(", ") || res.error)
+      } else { setErrorForm(res.error) }
+      return
+    }
+
+    toast.success("Mascota registrada")
+    setCrearAbierto(false)
+    recargar()
+  }
+
   async function handleAltaRapida(e: React.FormEvent) {
     e.preventDefault()
     setErrorForm(null)
@@ -164,10 +195,12 @@ export function MascotasClient({ mascotasIniciales, especies }: Props) {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Mascotas</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setAltaRapidaAbierto(true)}>
-            <Bolt className="mr-2 size-4" />
-            Alta rápida
-          </Button>
+          {!esPersonal && (
+            <Button variant="outline" onClick={() => setAltaRapidaAbierto(true)}>
+              <Bolt className="mr-2 size-4" />
+              Alta rápida
+            </Button>
+          )}
           <Button onClick={() => abrirCrear()}>
             <Plus className="mr-2 size-4" />
             Nueva mascota
@@ -190,7 +223,10 @@ export function MascotasClient({ mascotasIniciales, especies }: Props) {
           icon={<PawPrint className="size-12" />}
           titulo="No hay mascotas registradas"
           descripcion="Registra una mascota para comenzar su historial médico."
-          accion={{ label: "Alta rápida", onClick: () => setAltaRapidaAbierto(true) }}
+          accion={esPersonal
+            ? { label: "Nueva mascota", onClick: () => abrirCrear() }
+            : { label: "Alta rápida", onClick: () => setAltaRapidaAbierto(true) }
+          }
         />
       ) : (
         <DataTable
@@ -235,42 +271,51 @@ export function MascotasClient({ mascotasIniciales, especies }: Props) {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Nueva mascota</DialogTitle>
-            <DialogDescription>Registra una mascota vinculada a un dueño existente.</DialogDescription>
+            <DialogDescription>
+              {esPersonal ? "Registra una mascota en tu cuidado." : "Registra una mascota vinculada a un dueño existente."}
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCrear} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Dueño *</Label>
-              {duenoSeleccionado ? (
-                <div className="flex items-center justify-between rounded-md border p-2">
-                  <span className="text-sm">{duenoSeleccionado.nombre}</span>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setDuenoSeleccionado(null)}>
-                    Cambiar
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Input
-                    placeholder="Buscar dueño por nombre o teléfono..."
-                    value={busquedaDueno}
-                    onChange={(e) => buscarDuenosHandler(e.target.value)}
-                  />
-                  {resultadosDueno.length > 0 && (
-                    <div className="max-h-40 overflow-y-auto rounded-md border">
-                      {resultadosDueno.map((d) => (
-                        <button
-                          key={d.id}
-                          type="button"
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
-                          onClick={() => { setDuenoSeleccionado(d); setResultadosDueno([]); setBusquedaDueno("") }}
-                        >
-                          {d.nombre}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+          <form onSubmit={esPersonal ? handleCrearPersonal : handleCrear} className="space-y-4">
+            {esPersonal ? (
+              <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                <Info className="mt-0.5 size-4 shrink-0" />
+                <span>Registrando como dueño de la mascota. El dueño se asignará automáticamente.</span>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Dueño *</Label>
+                {duenoSeleccionado ? (
+                  <div className="flex items-center justify-between rounded-md border p-2">
+                    <span className="text-sm">{duenoSeleccionado.nombre}</span>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setDuenoSeleccionado(null)}>
+                      Cambiar
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Buscar dueño por nombre o teléfono..."
+                      value={busquedaDueno}
+                      onChange={(e) => buscarDuenosHandler(e.target.value)}
+                    />
+                    {resultadosDueno.length > 0 && (
+                      <div className="max-h-40 overflow-y-auto rounded-md border">
+                        {resultadosDueno.map((d) => (
+                          <button
+                            key={d.id}
+                            type="button"
+                            className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                            onClick={() => { setDuenoSeleccionado(d); setResultadosDueno([]); setBusquedaDueno("") }}
+                          >
+                            {d.nombre}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="mascota-nombre">Nombre *</Label>

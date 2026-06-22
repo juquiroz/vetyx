@@ -332,6 +332,31 @@ Los 6 documentos de diseño están completos y aprobados.
 
 ---
 
+## Dev Tools (QA)
+
+Ruta `/internal/dev-tools` protegida por `NODE_ENV === development`.
+
+| Pestaña | Componente | Server Action | Qué hace |
+|---|---|---|---|
+| Reset Datos | `pestana-reset-clinico.tsx` | `limpiar-datos-clinicos.ts` | DELETE citas, historial_medico, vacunas, mascotas, duenos. Mantiene clínica, usuarios, auth. |
+| Reset Completo | `pestana-reset-completo.tsx` | `limpiar-clinica-completa.ts` | DELETE TODO + `auth.admin.deleteUser` por cada usuario + DELETE clínica. Confirmación: nombre clínica + "RESET" + 5s countdown. |
+| Dataset Demo | `pestana-dataset.tsx` | `sembrar-datos.ts` | INSERT 2 vets (sin auth), 10 dueños, 15 mascotas, 5 citas, 5 vacunas. |
+| Export/Import | `pestana-export-import.tsx` | Inline (usa `crearClienteAdmin`) | Export: SELECT * + download JSON. Import: file picker + INSERT. |
+
+**Patrón:** `crearClienteAdmin()` (service role) bypasses RLS. Orden de DELETE respeta FK: citas → historial → vacunas → mascotas → dueños.
+
+**Archivos:**
+- `src/actions/dev/limpiar-datos-clinicos.ts`
+- `src/actions/dev/limpiar-clinica-completa.ts`
+- `src/actions/dev/sembrar-datos.ts`
+- `src/components/dev/pestana-reset-clinico.tsx`
+- `src/components/dev/pestana-reset-completo.tsx`
+- `src/components/dev/pestana-dataset.tsx`
+- `src/components/dev/pestana-export-import.tsx`
+- `src/app/(dashboard)/internal/dev-tools/page.tsx`
+
+---
+
 ## Decisión Arquitectónica: Contexto Dual (Diario Personal + Historial Clínico)
 
 **Documentada en Sprint 3 — NO implementada. Pendiente para Sprint futuro.**
@@ -385,13 +410,14 @@ Provider: `ContextoProvider` en `src/providers/contexto-provider.tsx`. Props: `c
 
 **NO se usa para permisos ni filtrado de datos.** Preparación visual para Contexto Dual futuro.
 
-### Comportamiento por contexto (future — no implementado en datos)
-| Acción | Modo Personal | Modo Clínica |
-|---|---|---|
-| Registrar evento | `origen_registro = 'owner'`, `clinic_id = NULL` | `origen_registro = 'clinic'`, `clinic_id = X` |
-| Ver timeline | Diario + Historial de todas las clínicas | Solo Historial de clínica X |
-| Crear cita | No disponible | Disponible |
-| Registrar vacuna | No disponible (futuro: sí, privada) | Disponible |
+### Comportamiento por contexto (implementado vs futuro)
+| Acción | Modo Personal (hoy) | Modo Personal (futuro) | Modo Clínica |
+|---|---|---|---|
+| Crear mascota | Dueño auto-asignado (vía `user_id`), `clinic_id` obligatorio | `origen_registro='personal'`, `clinic_id=NULL` | Dueño explícito (buscar/crear), `clinic_id=X` |
+| Registrar evento | `origen_registro = 'owner'`, `clinic_id = NULL` (futuro) | Diario Personal | `origen_registro = 'clinic'`, `clinic_id = X` |
+| Ver timeline | Diario + Historial de todas las clínicas (futuro) | Solo Historial de clínica X | Solo Historial de clínica X |
+| Crear cita | No disponible | No disponible | Disponible |
+| Registrar vacuna | No disponible | No disponible (futuro: sí, privada) | Disponible |
 
 ### UI futura (ficha mascota)
 Tabs: `[Resumen] [Historial Clínico] [Diario Personal]`
@@ -406,10 +432,29 @@ Indicadores en cards: `🏥 Registrado por Clínica X`, `👤 Registrado por due
 - ✅ Indicadores visuales (badge, tooltip, bloque mobile)
 - ✅ Provider con tipo expandido y `clinicId`
 
-### Preguntas abiertas (resolver antes de implementar)
+---
+
+## Decisión de Producto: Dueño Automático en Contexto Personal
+
+**Fecha:** 2026-06-21
+**Problema:** Usuario en modo Personal necesita registrar una mascota pero el sistema exige seleccionar/crear un dueño separado, cuando el dueño es él mismo.
+**Solución adoptada:**
+- `crear.ts` acepta `owner_id` opcional.
+- Si `owner_id` presente → flujo Clínica (validación actual).
+- Si `owner_id` ausente → llama `obtenerOCrearDuenoPersonal()` que busca `duenos WHERE user_id = usuario.id`. Si no existe, lo crea con nombre/email/teléfono del usuario.
+- **No hay campo `_contexto` en el servidor.** La decisión es client-side: la UI incluye o no `owner_id` en FormData según `contextoActivo.tipo`.
+- UI personal: oculta "Alta rápida" y el selector de dueño; muestra banner informativo sobre auto-asignación.
+**Archivos creados:** `src/actions/duenos/obtener-o-crear-dueno-personal.ts`, `src/types/models.ts` (tipos `ContextoOrigen`, `MascotaMetadata`).
+**Archivos modificados:** `src/lib/auth/get-current-user.ts` (+ `email`, `telefono`), `src/actions/mascotas/crear.ts` (owner_id opcional), `src/app/(dashboard)/mascotas/client.tsx` (UI condicional).
+**Deuda:** `clinic_id` NOT NULL mantiene datos personales atados a una clínica. Separación real requiere migración Contexto Dual.
+**Tests:** 10 tests nuevos (6 crear, 4 obtenerOCrearDuenoPersonal).
+
+---
+
+### Preguntas abiertas (resolver antes de implementar Contexto Dual)
 1. ¿El modo Personal permite registrar vacunas propias (ej: dueño que aplica desparasitante)?
 2. ¿El modo Personal agenda citas? (probablemente no — lo hace la clínica)
-3. ¿Cómo se relaciona dueño → mascota en modo Personal? ¿El dueño es el `created_by` del auth.user?
+3. ¿Cómo se relaciona dueño → mascota en modo Personal? ¿El dueño es el `created_by` del auth.user? **RESUELTO:** `duenos.user_id` vincula dueño con usuario.
 
 ### Bloqueos conocidos
 - **SMTP/Resend**: El sender `onboarding@resend.dev` solo puede enviar al email del dueño de la cuenta Resend. Para producción se requiere un dominio verificado en Resend. Mientras tanto, el dev auth bypass funciona sin email.
@@ -442,5 +487,10 @@ Indicadores en cards: `🏥 Registrado por Clínica X`, `👤 Registrado por due
 - Sin tests UI para Timeline, TimelineCard, RegistrarEventoModal. Solo tests de Server Actions.
 - Los filtros de búsqueda en timeline recargan desde el server (no hay filtrado client-side en caché). Con el fetch actual (todo en memoria) es equivalente.
 - El debounce de 300ms en filtros puede sentirse lento en conexiones lentas. Considerar filtrado client-side si se introduce SWR/React Query.
+
+### Dev Tools — Observaciones
+- `generar-link-dev.ts` y `listar-usuarios-dev.ts` NO tienen guard `NODE_ENV` — funcionarían en producción. Las nuevas acciones en `src/actions/dev/` sí tienen el guard.
+- Las acciones dev usan `crearClienteAdmin()` (service role) para bypass RLS y permitir hard DELETE.
+- Los vets creados por `sembrar-datos.ts` no tienen entrada en `auth.users` — solo existen en `usuarios` para props de UI. No pueden iniciar sesión.
 
 *Documento de restauración de contexto. Leer `docs/resume-next-session.md` al inicio de cada sesión.*

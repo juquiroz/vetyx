@@ -43,3 +43,9 @@ export interface VacunaConCatalogo extends Vacuna {
   usuario: Usuario
 }
 export type EstadoVacuna = "sin_refuerzo" | "vigente" | "proxima" | "vencida"
+
+export type ContextoOrigen = "personal" | "clinic"
+
+export interface MascotaMetadata {
+  origenRegistro?: ContextoOrigen
+}

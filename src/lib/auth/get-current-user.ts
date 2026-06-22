@@ -5,6 +5,8 @@ export interface UsuarioActual {
   clinic_id: string
   rol: "admin" | "vet" | "recepcionista"
   nombre: string
+  email?: string
+  telefono?: string | null
 }
 
 const cacheUsuario = new Map<string, UsuarioActual>()
@@ -17,7 +19,7 @@ export async function obtenerUsuarioActual(
   const supabase = await crearClienteAccion()
   const { data } = await supabase
     .from("usuarios")
-    .select("id, clinic_id, rol, nombre")
+    .select("id, clinic_id, rol, nombre, email, telefono")
     .eq("id", userId)
     .single()
 
@@ -28,6 +30,8 @@ export async function obtenerUsuarioActual(
     clinic_id: data.clinic_id,
     rol: data.rol as UsuarioActual["rol"],
     nombre: data.nombre,
+    email: data.email ?? undefined,
+    telefono: data.telefono,
   }
 
   cacheUsuario.set(userId, usuario)

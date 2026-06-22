@@ -33,6 +33,7 @@
 | P1-07 | Dev utilities en producción | `src/actions/auth/generar-link-dev.ts`, `listar-usuarios-dev.ts` | Funcionalidades de desarrollo accesibles en build de producción. Mover a `src/actions/dev/` o excluir del build. |
 | P1-08 | `VacunaConExtra` redundante | `src/types/models.ts:46-49` | Tipo duplicado — los campos `nombre_personalizado` y `observaciones` ya existen en `Vacuna` (Row). Eliminar. |
 | P1-09 | ~~`EstadoVacuna` no utilizado~~ **INCORRECTO** | `src/types/models.ts:51` | `EstadoVacuna` sí se usa en `tab-vacunas.tsx`. Mantener. |
+| P1-10 | `clinic_id NOT NULL` impide separación real de datos personales | `duenos` + `mascotas` | El modo Personal actual crea datos atados a una clínica porque `clinic_id` es NOT NULL en ambas tablas. Separación real requiere migración Contexto Dual (hacer `clinic_id` nullable, agregar `origen_registro`). |
 
 ---
 
@@ -49,6 +50,7 @@
 | P2-07 | Timeline mergea en JS | `src/actions/historial/obtener-timeline.ts` | Mergea historial + vacunas en cliente (no UNION ALL SQL). No escala para mascotas con miles de eventos. |
 | P2-08 | `cita_id` y `adjuntos` placeholders | `src/types/timeline.ts` | Campos no implementados en DB. Post-MVP. |
 | P2-09 | Catálogo vacunas hardcodeado | `supabase/seed.sql` | Sin UI para crear/editar catálogo. Depende de seed.sql. |
+| P2-10 | `duenos.user_id` sin índice | `duenos.user_id` | Búsqueda por `user_id` en `obtenerOCrearDuenoPersonal` es table scan completo. Bajo riesgo hoy (0-1 registros por usuario). |
 
 ---
 

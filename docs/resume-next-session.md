@@ -27,7 +27,8 @@
 | H-11: Registrar consulta/cirugía + edición 24h | ✅ 19 tests |
 | H-12: Vacunas (CRUD + catálogo + timeline + tests) | ✅ 25 tests |
 | `ContextoProvider + Sidebar/Topbar contexto visual` | ✅ Tipo expandido, badges, tooltip, mobile |
-| `pnpm build` / `pnpm tsc` / `pnpm test` | ✅ 0 errores, 140 tests, 18 test files |
+| Dev Tools (QA) | ✅ 4 tabs: reset datos, reset completo, dataset demo, export/import |
+| `pnpm build` / `pnpm tsc` / `pnpm test` | ✅ 0 errores, 155 tests, 20 test files |
 
 ---
 
@@ -58,7 +59,28 @@
 
 9. **Fix hydration mismatch (ContextoProvider)**: `obtenerInicial()` leía `localStorage` directamente en `useState(() => ...)`, causando server ("clinic") vs cliente ("personal"). Reemplazado por estado inicial sincronizado con server + `useEffect` post-hidratación para sync con localStorage. Fix aplicado — `/agenda` ya no crashea por hydration.
 
+10. **Dev Tools (QA) — `/internal/dev-tools`**: Ruta protegida por `NODE_ENV === development`. 4 pestañas: "Reset Datos" (elimina citas/historial/vacunas/mascotas/owner, mantiene clínica+usuarios), "Reset Completo" (elimina TODO incluyendo auth users, confirmación con nombre clínica + "RESET" + 5s countdown), "Dataset Demo" (crea 2 vets, 10 dueños, 15 mascotas, citas y vacunas de ejemplo), "Export/Import JSON" (descarga/carga datos como JSON). 3 server actions en `src/actions/dev/`. 4 componentes en `src/components/dev/`.
+
+11. **Dueño Automático en Contexto Personal**: Al crear mascota en modo Personal, el dueño se auto-resuelve vía `duenos.user_id`. Si no existe, se crea automáticamente con datos del usuario. `crear.ts` hace `owner_id` opcional. UI oculta selector de dueño y muestra banner informativo. Sin `_contexto` en servidor (decisión client-side). `obtenerUsuarioActual` expandido con `email`/`telefono`. 10 tests nuevos. `clinic_id NOT NULL` documentado como deuda (P1-10).
+12. **Fix loop infinito en agenda-grid.tsx**: Eliminado re-fetch/re-set de `veterinarios` dentro de `cargarGrid` useCallback (causaba dependencia circular). Ahora solo usa `veterinarios` del estado.
+
 ---
+
+## Sesión del 2026-06-21 — Cierre
+
+### Logrado
+- ✅ Dueño automático en contexto Personal implementado y testeado (155 tests, 20 files)
+- ✅ Fix loop infinito en agenda-grid.tsx
+- ✅ Deuda documentada: P1-10 (`clinic_id` NOT NULL), P2-10 (`duenos.user_id` sin índice)
+- ✅ Discusión abierta: registro bifurcado (clínica vs persona natural) como requisito para Contexto Dual real
+- ✅ Tipos `ContextoOrigen` y `MascotaMetadata` preparados en `models.ts`
+
+### Pendiente para mañana — Discutir y decidir
+1. **Registro bifurcado**: ¿Implementar flujo dual "Soy clínica" / "Soy dueño de mascota" como entrada a Contexto Dual?
+2. **Deuda P0 pendiente**: migrar middleware → proxy, fix hydration ThemeToggle
+3. **Sprint 4**: Definir prioridad entre catálogo vacunas editable, registro bifurcado, o pagar deuda técnica
+4. **Visibilidad cross-clínica**: Cómo unifica el timeline una persona que es dueño en múltiples clínicas
+5. **Roadmap**: Diseñar épica de Contexto Dual con milestones (registro bifurcado → RLS → timeline unificado)
 
 ## Cómo iniciar
 
@@ -107,12 +129,13 @@ pnpm dev
 
 ## Próximos pasos
 
-1. **Sprint 4**: Pendiente de definir. Opciones:
-   - Corregir deuda P0: migrar middleware → proxy, fix hydration ThemeToggle
-   - Fase 3: Reporte final antes de construir nueva funcionalidad
-   - Catálogo de vacunas editable (UI para crear/editar)
-   - Paso a producción (dominio, SMTP, SSL)
-   - H-13 (Recordatorios/cron) si se prioriza
+1. **Registro bifurcado (nuevo)**: Decidir si implementar flujo "Soy clínica" / "Soy dueño de mascota". Esto desbloquea Contexto Dual real y permite que personas usen la app sin depender de una clínica.
+2. **Deuda P0**: migrar middleware → proxy, fix hydration ThemeToggle
+3. **Sprint 4**: Definir prioridad — catálogo vacunas editable, registro bifurcado, o pagar deuda primero
+4. **Contexto Dual**: Diseñar épica completa con milestones (registro bifurcado → `clinic_id` nullable → RLS → timeline cross-clínica)
+5. **Catálogo de vacunas editable** (UI para crear/editar)
+6. **H-13 (Recordatorios/cron)** si se prioriza
+7. **Paso a producción** (dominio, SMTP, SSL)
 
 ---
 

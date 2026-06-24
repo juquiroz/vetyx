@@ -31,7 +31,7 @@ export async function editarEvento(
     .from("historial_medico")
     .select("id, created_at")
     .eq("id", id)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .single()
 
   if (!existente) return { success: false, error: "Evento no encontrado" }
@@ -55,7 +55,7 @@ export async function editarEvento(
       notas: notas !== undefined ? (notas || null) : undefined,
     } as Database["public"]["Tables"]["historial_medico"]["Update"])
     .eq("id", id)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .select("id, tratamiento, notas")
     .single()
 

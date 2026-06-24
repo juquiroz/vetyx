@@ -36,11 +36,19 @@ function crearMockCliente(cita: typeof CITA_CONFIRMED) {
           eq: vi.fn(() => ({
             single: vi.fn().mockResolvedValue({ data: cita, error: null }),
           })),
+          filter: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: cita, error: null }),
+          })),
         })),
       })),
       update: vi.fn(() => ({
         eq: vi.fn(() => ({
           eq: vi.fn(() => ({
+            select: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({ data: { ...cita, estado: "no_show" }, error: null }),
+            })),
+          })),
+          filter: vi.fn(() => ({
             select: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({ data: { ...cita, estado: "no_show" }, error: null }),
             })),

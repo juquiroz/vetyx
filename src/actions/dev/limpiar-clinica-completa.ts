@@ -22,7 +22,7 @@ export async function limpiarClinicaCompleta() {
   if (!usuario) return { error: "Usuario no encontrado" }
 
   const admin = crearClienteAdmin()
-  const cid = usuario.clinic_id
+  const cid = usuario.clinic_id!
 
   await admin.from("citas").delete().eq("clinic_id", cid)
   await admin.from("historial_medico").delete().eq("clinic_id", cid)

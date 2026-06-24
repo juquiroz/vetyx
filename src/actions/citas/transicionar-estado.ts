@@ -42,7 +42,7 @@ export async function transicionarEstado(input: FormData): Promise<TransicionarE
     .from("citas")
     .select("*")
     .eq("id", id)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .single()
 
   if (!citaActual) return { ok: false, error: "Cita no encontrada" }
@@ -56,7 +56,7 @@ export async function transicionarEstado(input: FormData): Promise<TransicionarE
     .from("citas")
     .update({ estado })
     .eq("id", id)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .select()
     .single()
 

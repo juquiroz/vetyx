@@ -51,7 +51,7 @@ export async function obtenerSlotsDisponibles(
   const { data: citasExistentes } = await supabase
     .from("citas")
     .select("id, fecha_hora, duracion_minutos")
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .eq("veterinario_id", veterinario_id)
     .in("estado", [...ESTADOS_BLOQUEAN])
     .gte("fecha_hora", inicioDia.toISOString())

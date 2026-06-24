@@ -36,7 +36,7 @@ export async function marcarNoShow(input: FormData): Promise<MarcarNoShowOutput>
     .from("citas")
     .select("*")
     .eq("id", id)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .single()
 
   if (!citaActual) return { ok: false, error: "Cita no encontrada" }
@@ -49,7 +49,7 @@ export async function marcarNoShow(input: FormData): Promise<MarcarNoShowOutput>
     .from("citas")
     .update({ estado: "no_show" })
     .eq("id", id)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .select()
     .single()
 

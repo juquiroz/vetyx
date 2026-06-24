@@ -18,6 +18,7 @@ interface FilaMock extends PromiseLike<{ data: Record<string, unknown>[] | null;
   from: (table: string) => FilaMock
   select: (columns?: string) => FilaMock
   eq: (column: string, value: string) => FilaMock
+  filter: (column: string, operator: string, value: string) => FilaMock
   in: (column: string, values: string[]) => FilaMock
   order: (column: string, opts?: { ascending: boolean }) => FilaMock
 }
@@ -29,6 +30,7 @@ function crearFila(resolvedValue: Resolved): FilaMock {
     from: vi.fn(() => mock),
     select: vi.fn(() => mock),
     eq: vi.fn(() => mock),
+    filter: vi.fn(() => mock),
     in: vi.fn(() => mock),
     order: vi.fn(() => mock),
     then<TResult1 = Resolved, TResult2 = never>(

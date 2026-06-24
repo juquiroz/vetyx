@@ -34,7 +34,7 @@ export async function crearEvento(
     .from("mascotas")
     .select("id")
     .eq("id", mascota_id)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .single()
 
   if (!mascota) return { success: false, error: "Mascota no encontrada" }

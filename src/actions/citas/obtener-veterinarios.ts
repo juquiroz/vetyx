@@ -21,7 +21,7 @@ export async function obtenerVeterinarios(): Promise<VeterinarioOpcion[]> {
   const { data } = await supabase
     .from("usuarios")
     .select("id, nombre, rol")
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .eq("activo", true)
     .eq("rol", "vet")
     .order("nombre")

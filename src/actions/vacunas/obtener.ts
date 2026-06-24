@@ -32,7 +32,7 @@ export async function obtenerVacunas(mascotaId: string): Promise<VacunaRegistrad
     .from("vacunas")
     .select("id, tipo_vacuna_id, nombre_personalizado, lote, fecha_aplicacion, fecha_proxima_dosis, observaciones, aplicado_por")
     .eq("mascota_id", mascotaId)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .order("fecha_aplicacion", { ascending: false })
 
   if (!vacunas) return []

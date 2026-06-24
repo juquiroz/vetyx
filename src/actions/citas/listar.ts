@@ -25,7 +25,7 @@ export async function listarCitas(fecha: string): Promise<CitaConRelaciones[]> {
   const { data } = await supabase
     .from("citas")
     .select("*, mascota:mascotas(id, nombre, especie:especies(id, nombre), dueno:duenos(id, nombre, telefono)), veterinario:usuarios(id, nombre, email, rol)")
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .gte("fecha_hora", inicio.toISOString())
     .lte("fecha_hora", fin.toISOString())
     .order("fecha_hora", { ascending: true })

@@ -27,7 +27,7 @@ export async function listarDuenos(): Promise<DuenoResumen[]> {
   const { data: duenos } = await supabase
     .from("duenos")
     .select("id, cedula, nombre, telefono, email, activo, created_at")
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .order("created_at", { ascending: false })
 
   if (!duenos || duenos.length === 0) return []

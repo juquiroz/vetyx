@@ -18,6 +18,7 @@ import type { EstadoVacuna } from "@/types/models"
 interface Props {
   mascotaId: string
   especieId: string
+  puedeCrear: boolean
 }
 
 function calcularEstadoVacuna(fechaProximaDosis: string | null): { estado: EstadoVacuna; color: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" } {
@@ -41,7 +42,7 @@ const ETIQUETA_ESTADO: Record<EstadoVacuna, string> = {
   vencida: "Vencida",
 }
 
-export function TabVacunas({ mascotaId, especieId }: Props) {
+export function TabVacunas({ mascotaId, especieId, puedeCrear }: Props) {
   const router = useRouter()
   const [vacunas, setVacunas] = useState<VacunaRegistrada[]>([])
   const [cargando, setCargando] = useState(true)
@@ -102,10 +103,12 @@ export function TabVacunas({ mascotaId, especieId }: Props) {
     <div className="space-y-4 pt-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Vacunas</h2>
-        <Button size="sm" onClick={() => setCrearAbierto(true)}>
-          <Plus className="mr-1 size-4" />
-          Registrar vacuna
-        </Button>
+        {puedeCrear && (
+          <Button size="sm" onClick={() => setCrearAbierto(true)}>
+            <Plus className="mr-1 size-4" />
+            Registrar vacuna
+          </Button>
+        )}
       </div>
 
       {cargando ? (
@@ -119,7 +122,7 @@ export function TabVacunas({ mascotaId, especieId }: Props) {
           icon={<Syringe className="size-12" />}
           titulo="Este paciente no tiene vacunas registradas"
           descripcion="Registra la primera vacuna para empezar el control de vacunación."
-          accion={{ label: "Registrar primera vacuna", onClick: () => setCrearAbierto(true) }}
+          accion={puedeCrear ? { label: "Registrar primera vacuna", onClick: () => setCrearAbierto(true) } : undefined}
         />
       ) : (
         <div className="space-y-3">

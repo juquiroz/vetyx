@@ -30,6 +30,7 @@ interface CitaRowMock {
 type CadenaMock = PromiseLike<{ data: CitaRowMock[] | null }> & {
   select: (columns: string) => CadenaMock
   eq: (column: string, value: string | boolean) => CadenaMock
+  filter: (column: string, operator: string, value: string) => CadenaMock
   neq: (column: string, value: string) => CadenaMock
   gte: (column: string, value: string) => CadenaMock
   lte: (column: string, value: string) => CadenaMock
@@ -40,6 +41,7 @@ function crearCadena(data: CitaRowMock[] | null): { from: (table: string) => Cad
   const cadena = {
     select: vi.fn(() => cadena),
     eq: vi.fn(() => cadena),
+    filter: vi.fn(() => cadena),
     neq: vi.fn(() => cadena),
     gte: vi.fn(() => cadena),
     lte: vi.fn(() => cadena),

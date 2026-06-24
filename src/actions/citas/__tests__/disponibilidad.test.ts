@@ -21,7 +21,9 @@ interface CadenaSupabaseMock {
   from: (table: string) => CadenaSupabaseMock
   select: (columns: string) => CadenaSupabaseMock
   eq: (column: string, value: string) => CadenaSupabaseMock
+  filter: (column: string, operator: string, value: string) => CadenaSupabaseMock
   in: (column: string, values: string[]) => CadenaSupabaseMock
+  neq: (column: string, value: string) => CadenaSupabaseMock
   gte: (column: string, value: string) => CadenaSupabaseMock
   lte: (column: string, value: string) => Promise<{ data: CitaRowMock[] | null; error: null }>
 }
@@ -47,7 +49,9 @@ function crearCadenaSupabase(data: CitaRowMock[] | null): CadenaSupabaseMock {
     from: vi.fn(() => mock),
     select: vi.fn(() => mock),
     eq: vi.fn(() => mock),
+    filter: vi.fn(() => mock),
     in: vi.fn(() => mock),
+    neq: vi.fn(() => mock),
     gte: vi.fn(() => mock),
     lte: vi.fn().mockResolvedValue({ data, error: null }),
   }

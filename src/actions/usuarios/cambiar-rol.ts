@@ -27,20 +27,24 @@ export async function cambiarRolUsuario(input: FormData) {
   const { usuarioId, nuevoRol } = parsed.data
   const supabase = await crearClienteAccion()
 
+  if (!usuario.clinic_id) return { error: "No perteneces a una clínica" }
+
   const { data: objetivo } = await supabase
-    .from("usuarios")
-    .select("id, rol, clinic_id")
-    .eq("id", usuarioId)
+    .from("clinic_memberships")
+    .select("rol, user_id")
+    .eq("user_id", usuarioId)
+    .eq("clinic_id", usuario.clinic_id)
+    .eq("tipo", "staff")
     .single()
 
-  if (!objetivo) return { error: "Usuario no encontrado" }
-  if (objetivo.clinic_id !== usuario.clinic_id) return { error: "El usuario no pertenece a tu clínica" }
-  if (objetivo.id === usuario.id) return { error: "No puedes cambiar tu propio rol" }
+  if (!objetivo) return { error: "Usuario no encontrado en esta clínica" }
+  if (objetivo.user_id === usuario.id) return { error: "No puedes cambiar tu propio rol" }
 
   const { data: adminsActivos } = await supabase
-    .from("usuarios")
+    .from("clinic_memberships")
     .select("id", { count: "exact" })
     .eq("clinic_id", usuario.clinic_id)
+    .eq("tipo", "staff")
     .eq("rol", "admin")
     .eq("activo", true)
 
@@ -49,12 +53,16 @@ export async function cambiarRolUsuario(input: FormData) {
 
   if (esElUnicoAdmin) return { error: "Debe haber al menos un admin activo en la clínica" }
 
-  const { error } = await supabase
-    .from("usuarios")
+  const { error: membershipError } = await supabase
+    .from("clinic_memberships")
     .update({ rol: nuevoRol })
-    .eq("id", usuarioId)
+    .eq("user_id", usuarioId)
+    .eq("clinic_id", usuario.clinic_id)
 
-  if (error) return { error: error.message }
+  if (membershipError) return { error: membershipError.message }
+
+  // Atrás-compat: mantener rol en usuarios sincronizado
+  await supabase.from("usuarios").update({ rol: nuevoRol }).eq("id", usuarioId)
 
   limpiarCacheSesion()
   return { success: true }

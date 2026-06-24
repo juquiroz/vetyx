@@ -115,7 +115,7 @@ export async function verificarDisponibilidad(
 
   return verificarDisponibilidadInterna({
     supabase,
-    clinic_id: usuario.clinic_id,
+    clinic_id: usuario.clinic_id!,
     veterinario_id,
     fecha_hora,
     duracion_minutos,

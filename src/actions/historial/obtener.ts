@@ -25,7 +25,7 @@ export async function obtenerHistorial(mascotaId: string): Promise<EventoHistori
     .from("historial_medico")
     .select("id, tipo, fecha, diagnostico, created_by")
     .eq("mascota_id", mascotaId)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .order("fecha", { ascending: false })
 
   if (!data) return []

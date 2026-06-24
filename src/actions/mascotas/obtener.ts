@@ -36,7 +36,7 @@ export async function obtenerMascota(id: string): Promise<MascotaCompleta | null
     .from("mascotas")
     .select("id, nombre, especie_id, raza, fecha_nacimiento, color, peso, sexo, esterilizado, activo, owner_id")
     .eq("id", id)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .single()
 
   if (!mascota) return null

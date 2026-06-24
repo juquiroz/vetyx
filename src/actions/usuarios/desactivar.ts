@@ -26,20 +26,24 @@ export async function desactivarUsuario(input: FormData) {
   const { usuarioId } = parsed.data
   const supabase = await crearClienteAccion()
 
+  if (!usuario.clinic_id) return { error: "No perteneces a una clínica" }
+
   const { data: objetivo } = await supabase
-    .from("usuarios")
-    .select("id, rol, clinic_id")
-    .eq("id", usuarioId)
+    .from("clinic_memberships")
+    .select("rol, user_id")
+    .eq("user_id", usuarioId)
+    .eq("clinic_id", usuario.clinic_id)
+    .eq("tipo", "staff")
     .single()
 
-  if (!objetivo) return { error: "Usuario no encontrado" }
-  if (objetivo.clinic_id !== usuario.clinic_id) return { error: "El usuario no pertenece a tu clínica" }
-  if (objetivo.id === usuario.id) return { error: "No puedes desactivarte a ti mismo" }
+  if (!objetivo) return { error: "Usuario no encontrado en esta clínica" }
+  if (objetivo.user_id === usuario.id) return { error: "No puedes desactivarte a ti mismo" }
 
   const { data: adminsActivos } = await supabase
-    .from("usuarios")
+    .from("clinic_memberships")
     .select("id", { count: "exact" })
     .eq("clinic_id", usuario.clinic_id)
+    .eq("tipo", "staff")
     .eq("rol", "admin")
     .eq("activo", true)
 
@@ -48,12 +52,25 @@ export async function desactivarUsuario(input: FormData) {
     return { error: "Debe haber al menos un admin activo en la clínica" }
   }
 
-  const { error } = await supabase
-    .from("usuarios")
+  const { error: membershipError } = await supabase
+    .from("clinic_memberships")
     .update({ activo: false })
-    .eq("id", usuarioId)
+    .eq("user_id", usuarioId)
+    .eq("clinic_id", usuario.clinic_id)
 
-  if (error) return { error: error.message }
+  if (membershipError) return { error: membershipError.message }
+
+  // Atrás-compat: desactivar también en usuarios si es su única clínica staff
+  const { data: otrasMemberships } = await supabase
+    .from("clinic_memberships")
+    .select("id")
+    .eq("user_id", usuarioId)
+    .eq("tipo", "staff")
+    .eq("activo", true)
+
+  if (!otrasMemberships || otrasMemberships.length === 0) {
+    await supabase.from("usuarios").update({ activo: false }).eq("id", usuarioId)
+  }
 
   limpiarCacheSesion()
   return { success: true }

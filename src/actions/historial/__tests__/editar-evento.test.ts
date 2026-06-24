@@ -39,6 +39,7 @@ describe("editarEvento", () => {
       from: vi.fn(() => cadena),
       select: vi.fn(() => cadena),
       eq: vi.fn(() => cadena),
+      filter: vi.fn(() => cadena),
       update: vi.fn(() => cadena),
       single: vi.fn()
         .mockResolvedValueOnce(resultadoExistente)

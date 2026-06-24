@@ -22,7 +22,7 @@ export async function obtenerCita(id: string): Promise<CitaConRelaciones | null>
     .from("citas")
     .select("*, mascota:mascotas(id, nombre, especie:especies(id, nombre), dueno:duenos(id, nombre, telefono)), veterinario:usuarios(id, nombre, email, rol)")
     .eq("id", id)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .single()
 
   return (data ?? null) as unknown as CitaConRelaciones | null

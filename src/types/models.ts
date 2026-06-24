@@ -12,6 +12,7 @@ export type Cita = Row<"citas">
 export type HistorialMedico = Row<"historial_medico">
 export type CatalogoVacuna = Row<"catalogo_vacunas">
 export type Vacuna = Row<"vacunas">
+export type ClinicMembership = Row<"clinic_memberships">
 
 export interface DuenoConMascotas extends Dueno {
   mascotas: Mascota[]
@@ -43,6 +44,11 @@ export interface VacunaConCatalogo extends Vacuna {
   usuario: Usuario
 }
 export type EstadoVacuna = "sin_refuerzo" | "vigente" | "proxima" | "vencida"
+
+export interface ClinicMembershipConClinica extends ClinicMembership {
+  clinica_nombre: string
+  clinica_slug: string
+}
 
 export type ContextoOrigen = "personal" | "clinic"
 

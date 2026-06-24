@@ -53,6 +53,9 @@ describe("obtenerCita", () => {
             eq: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({ data: CITA_MOCK, error: null }),
             })),
+            filter: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({ data: CITA_MOCK, error: null }),
+            })),
           })),
         })),
       })),
@@ -69,6 +72,9 @@ describe("obtenerCita", () => {
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({ data: null, error: null }),
+            })),
+            filter: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({ data: null, error: null }),
             })),
           })),

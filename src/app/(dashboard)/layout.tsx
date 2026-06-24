@@ -23,16 +23,18 @@ export default async function DashboardLayout({
     redirect("/login")
   }
 
-  const supabase = await crearClienteAccion()
-  const { data: clinica } = await supabase
-    .from("clinicas")
-    .select("nombre")
-    .eq("id", usuario.clinic_id)
-    .single()
+  const staffMembership = usuario.membresias?.find(m => m.tipo === "staff")
+  const clinicaNombre = staffMembership?.clinica_nombre ?? ""
 
   return (
     <ClinicProvider usuario={usuario}>
-      <ContextoProvider clinicaId={usuario.clinic_id} clinicaNombre={clinica?.nombre ?? "Mi Clínica"} usuarioRol={usuario.rol} usuarioNombre={usuario.nombre}>
+      <ContextoProvider
+        clinicaId={staffMembership?.clinic_id}
+        clinicaNombre={clinicaNombre}
+        usuarioRol={usuario.rol}
+        usuarioNombre={usuario.nombre}
+        membresias={usuario.membresias}
+      >
         <div className="flex h-screen overflow-hidden">
           <Sidebar />
           <div className="flex flex-1 flex-col overflow-hidden">

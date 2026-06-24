@@ -12,9 +12,10 @@ import type { EventoTimeline } from "@/types/timeline"
 
 interface Props {
   mascotaId: string
+  puedeCrear: boolean
 }
 
-export function Timeline({ mascotaId }: Props) {
+export function Timeline({ mascotaId, puedeCrear }: Props) {
   const [eventos, setEventos] = useState<EventoTimeline[]>([])
   const [pagina, setPagina] = useState(1)
   const [cargando, setCargando] = useState(true)
@@ -118,10 +119,12 @@ export function Timeline({ mascotaId }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Línea de tiempo</h2>
-        <Button size="sm" onClick={() => setCrearAbierto(true)}>
-          <Plus className="mr-1 size-4" />
-          Nuevo evento
-        </Button>
+        {puedeCrear && (
+          <Button size="sm" onClick={() => setCrearAbierto(true)}>
+            <Plus className="mr-1 size-4" />
+            Nuevo evento
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-wrap items-end gap-2 rounded-lg border p-3">

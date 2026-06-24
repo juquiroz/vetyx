@@ -20,7 +20,7 @@ export async function obtenerVeterinariosParaVacuna(): Promise<VeterinarioOpcion
   const { data } = await supabase
     .from("usuarios")
     .select("id, nombre")
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .eq("activo", true)
     .in("rol", ["vet", "admin"])
     .order("nombre")

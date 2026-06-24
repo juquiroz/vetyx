@@ -3,6 +3,8 @@
 import { crearClienteAdmin } from "@/lib/supabase/admin"
 
 export async function generarLinkDev(email: string) {
+  if (process.env.NODE_ENV !== "development") return { error: "No autorizado" }
+
   const supabase = crearClienteAdmin()
 
   const { data, error } = await supabase.auth.admin.generateLink({

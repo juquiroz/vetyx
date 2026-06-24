@@ -54,11 +54,21 @@ function crearMockCliente(disponible = true) {
               .mockResolvedValueOnce({ data: CITA_EXISTENTE, error: null })
               .mockResolvedValueOnce({ data: { ...CITA_EXISTENTE, veterinario_id: UUID_NUEVO_VET, motivo: "Nuevo motivo" }, error: null }),
           })),
+          filter: vi.fn(() => ({
+            single: vi.fn()
+              .mockResolvedValueOnce({ data: CITA_EXISTENTE, error: null })
+              .mockResolvedValueOnce({ data: { ...CITA_EXISTENTE, veterinario_id: UUID_NUEVO_VET, motivo: "Nuevo motivo" }, error: null }),
+          })),
         })),
       })),
       update: vi.fn(() => ({
         eq: vi.fn(() => ({
           eq: vi.fn(() => ({
+            select: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({ data: { ...CITA_EXISTENTE, veterinario_id: UUID_NUEVO_VET, motivo: "Nuevo motivo" }, error: null }),
+            })),
+          })),
+          filter: vi.fn(() => ({
             select: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({ data: { ...CITA_EXISTENTE, veterinario_id: UUID_NUEVO_VET, motivo: "Nuevo motivo" }, error: null }),
             })),

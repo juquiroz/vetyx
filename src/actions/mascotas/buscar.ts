@@ -43,7 +43,7 @@ export async function buscarMascotas(query: string, dueno_id?: string): Promise<
       const { data: mascotas } = await supabase
         .from("mascotas")
         .select("id, nombre, especie_id, owner_id, activo")
-        .eq("clinic_id", usuario.clinic_id)
+        .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
         .eq("owner_id", dueno_id)
         .ilike("nombre", termino)
         .limit(10)
@@ -65,7 +65,7 @@ export async function buscarMascotas(query: string, dueno_id?: string): Promise<
   const { data: duenos } = await supabase
     .from("duenos")
     .select("id, nombre")
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .or(`nombre.ilike.${termino},telefono.ilike.${termino}`)
     .limit(10)
 
@@ -75,14 +75,14 @@ export async function buscarMascotas(query: string, dueno_id?: string): Promise<
   const mascotasQuery = supabase
     .from("mascotas")
     .select("id, nombre, especie_id, owner_id, activo")
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .ilike("nombre", termino)
 
   if (duenoIds.length > 0) {
     const { data: mascotasPorDueno } = await supabase
       .from("mascotas")
       .select("id, nombre, especie_id, owner_id, activo")
-      .eq("clinic_id", usuario.clinic_id)
+      .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
       .in("owner_id", duenoIds)
       .limit(10)
 

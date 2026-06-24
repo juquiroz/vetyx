@@ -38,7 +38,7 @@ export async function crearMascotaConDueno(input: FormData) {
     .from("duenos")
     .select("id")
     .eq("telefono", dueno_telefono)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .maybeSingle()
 
   let owner_id: string

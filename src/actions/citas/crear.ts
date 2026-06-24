@@ -38,7 +38,7 @@ export async function crearCita(input: FormData): Promise<CrearCitaOutput> {
 
   const disponibilidad = await verificarDisponibilidadInterna({
     supabase,
-    clinic_id: usuario.clinic_id,
+    clinic_id: usuario.clinic_id!,
     veterinario_id,
     fecha_hora,
     duracion_minutos,
@@ -74,7 +74,7 @@ export async function crearCita(input: FormData): Promise<CrearCitaOutput> {
     if (error.code === "23P01" || error.message?.includes("excl_citas_solapamiento")) {
       const disponibilidadActualizada = await verificarDisponibilidadInterna({
         supabase,
-        clinic_id: usuario.clinic_id,
+        clinic_id: usuario.clinic_id!,
         veterinario_id,
         fecha_hora,
         duracion_minutos,

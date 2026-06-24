@@ -49,7 +49,7 @@ export type Database = {
       usuarios: {
         Row: {
           id: string
-          clinic_id: string
+          clinic_id: string | null
           email: string
           nombre: string
           rol: string
@@ -61,7 +61,7 @@ export type Database = {
         }
         Insert: {
           id: string
-          clinic_id: string
+          clinic_id: string | null
           email: string
           nombre: string
           rol: string
@@ -73,7 +73,7 @@ export type Database = {
         }
         Update: {
           id?: string
-          clinic_id?: string
+          clinic_id?: string | null
           email?: string
           nombre?: string
           rol?: string
@@ -88,7 +88,7 @@ export type Database = {
       duenos: {
         Row: {
           id: string
-          clinic_id: string
+          clinic_id: string | null
           cedula: string | null
           nombre: string
           telefono: string
@@ -102,7 +102,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          clinic_id: string
+          clinic_id: string | null
           cedula?: string | null
           nombre: string
           telefono: string
@@ -116,7 +116,7 @@ export type Database = {
         }
         Update: {
           id?: string
-          clinic_id?: string
+          clinic_id?: string | null
           cedula?: string | null
           nombre?: string
           telefono?: string
@@ -154,7 +154,7 @@ export type Database = {
       mascotas: {
         Row: {
           id: string
-          clinic_id: string
+          clinic_id: string | null
           owner_id: string
           especie_id: string
           nombre: string
@@ -171,7 +171,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          clinic_id: string
+          clinic_id: string | null
           owner_id: string
           especie_id: string
           nombre: string
@@ -188,7 +188,7 @@ export type Database = {
         }
         Update: {
           id?: string
-          clinic_id?: string
+          clinic_id?: string | null
           owner_id?: string
           especie_id?: string
           nombre?: string
@@ -208,7 +208,7 @@ export type Database = {
       citas: {
         Row: {
           id: string
-          clinic_id: string
+          clinic_id: string | null
           mascota_id: string
           veterinario_id: string
           fecha_hora: string
@@ -227,7 +227,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          clinic_id: string
+          clinic_id: string | null
           mascota_id: string
           veterinario_id: string
           fecha_hora: string
@@ -245,7 +245,7 @@ export type Database = {
         }
         Update: {
           id?: string
-          clinic_id?: string
+          clinic_id?: string | null
           mascota_id?: string
           veterinario_id?: string
           fecha_hora?: string
@@ -266,7 +266,7 @@ export type Database = {
       historial_medico: {
         Row: {
           id: string
-          clinic_id: string
+          clinic_id: string | null
           mascota_id: string
           tipo: string
           fecha: string
@@ -279,7 +279,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          clinic_id: string
+          clinic_id: string | null
           mascota_id: string
           tipo: string
           fecha: string
@@ -292,7 +292,7 @@ export type Database = {
         }
         Update: {
           id?: string
-          clinic_id?: string
+          clinic_id?: string | null
           mascota_id?: string
           tipo?: string
           fecha?: string
@@ -332,7 +332,7 @@ export type Database = {
       vacunas: {
         Row: {
           id: string
-          clinic_id: string
+          clinic_id: string | null
           mascota_id: string
           tipo_vacuna_id: string
           nombre_personalizado: string | null
@@ -347,7 +347,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          clinic_id: string
+          clinic_id: string | null
           mascota_id: string
           tipo_vacuna_id: string
           nombre_personalizado?: string | null
@@ -362,7 +362,7 @@ export type Database = {
         }
         Update: {
           id?: string
-          clinic_id?: string
+          clinic_id?: string | null
           mascota_id?: string
           tipo_vacuna_id?: string
           nombre_personalizado?: string | null
@@ -372,6 +372,39 @@ export type Database = {
           observaciones?: string | null
           recordatorio_enviado?: number
           aplicado_por?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      clinic_memberships: {
+        Row: {
+          id: string
+          clinic_id: string
+          user_id: string
+          tipo: string
+          rol: string | null
+          activo: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          user_id: string
+          tipo: string
+          rol?: string | null
+          activo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          user_id?: string
+          tipo?: string
+          rol?: string | null
+          activo?: boolean
           created_at?: string
           updated_at?: string
         }

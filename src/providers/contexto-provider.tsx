@@ -1,6 +1,7 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, useEffect } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react"
+import type { ClinicMembershipConClinica } from "@/types/models"
 
 export interface ContextoActivo {
   tipo: "personal" | "clinic"
@@ -14,6 +15,8 @@ interface ContextoType {
   clinicaNombre: string
   usuarioRol: string
   usuarioNombre: string
+  membresias: ClinicMembershipConClinica[]
+  clinicasStaff: { id: string; nombre: string }[]
 }
 
 const ContextoContext = createContext<ContextoType | null>(null)
@@ -25,37 +28,61 @@ export function ContextoProvider({
   clinicaNombre,
   usuarioRol,
   usuarioNombre,
+  membresias = [],
   children,
 }: {
   clinicaId?: string
   clinicaNombre: string
   usuarioRol: string
   usuarioNombre: string
+  membresias?: ClinicMembershipConClinica[]
   children: React.ReactNode
 }) {
+  const clinicasStaff = useMemo(
+    () => membresias.filter((m) => m.tipo === "staff").map((m) => ({ id: m.clinic_id, nombre: m.clinica_nombre })),
+    [membresias],
+  )
+
+  const clinicaInicial = clinicaId ?? clinicasStaff[0]?.id
+  const nombreInicial = clinicaNombre || clinicasStaff[0]?.nombre || ""
+
   const [contextoActivo, setState] = useState<ContextoActivo>({
-    tipo: clinicaNombre ? "clinic" : "personal",
-    clinicId: clinicaId,
-    clinicNombre: clinicaNombre,
+    tipo: clinicasStaff.length > 0 ? "clinic" : "personal",
+    clinicId: clinicaInicial,
+    clinicNombre: nombreInicial,
   })
 
   useEffect(() => {
     const guardado = localStorage.getItem(STORAGE_KEY)
     if (guardado === "personal" || guardado === "clinic") {
-      const ctx: ContextoActivo = guardado === "clinic" && clinicaId
-        ? { tipo: "clinic", clinicId: clinicaId, clinicNombre: clinicaNombre }
+      const ctx: ContextoActivo = guardado === "clinic" && clinicaInicial
+        ? { tipo: "clinic", clinicId: clinicaInicial, clinicNombre: nombreInicial }
         : { tipo: guardado }
       setState(ctx)
     }
-  }, [])
+  }, [clinicaInicial, nombreInicial])
 
   const setContextoActivo = useCallback((ctx: ContextoActivo) => {
     setState(ctx)
     localStorage.setItem(STORAGE_KEY, ctx.tipo)
   }, [])
 
+  const currentNombre = contextoActivo.tipo === "clinic"
+    ? contextoActivo.clinicNombre ?? nombreInicial
+    : ""
+
   return (
-    <ContextoContext.Provider value={{ contextoActivo, setContextoActivo, clinicaNombre, usuarioRol, usuarioNombre }}>
+    <ContextoContext.Provider
+      value={{
+        contextoActivo,
+        setContextoActivo,
+        clinicaNombre: currentNombre,
+        usuarioRol,
+        usuarioNombre,
+        membresias,
+        clinicasStaff,
+      }}
+    >
       {children}
     </ContextoContext.Provider>
   )

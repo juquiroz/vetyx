@@ -18,6 +18,7 @@ type FilaMock = {
   from: (table: string) => FilaMock
   select: (columns?: string) => FilaMock
   eq: (column: string, value: string) => FilaMock
+  filter: (column: string, operator: string, value: string) => FilaMock
   single: () => Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>
   insert: (values: Record<string, unknown>) => FilaMock
   then: <T>(onfulfilled?: (value: unknown) => T) => Promise<T>
@@ -28,6 +29,7 @@ function crearFila(selectData: Record<string, unknown> | null, selectError: { me
     from: vi.fn(() => mock),
     select: vi.fn(() => mock),
     eq: vi.fn(() => mock),
+    filter: vi.fn(() => mock),
     single: vi.fn().mockResolvedValue({ data: selectData, error: selectError }),
     insert: vi.fn(() => mock),
     then: vi.fn((onfulfilled) => Promise.resolve(onfulfilled?.({ data: selectData, error: selectError }))),

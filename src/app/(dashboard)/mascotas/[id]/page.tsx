@@ -5,6 +5,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { obtenerMascota } from "@/actions/mascotas/obtener"
+import { obtenerSesion } from "@/lib/auth/get-session"
+import { obtenerUsuarioActual } from "@/lib/auth/get-current-user"
+import { verificarPermiso } from "@/lib/auth/check-permission"
 import { Timeline } from "@/components/historial/timeline"
 import { TabVacunas } from "@/components/vacunas/tab-vacunas"
 import { AccionesMascota } from "./acciones"
@@ -19,6 +22,11 @@ export default async function FichaMascotaPage({ params }: Props) {
   const mascota = await obtenerMascota(id)
 
   if (!mascota) notFound()
+
+  const sesion = await obtenerSesion()
+  const usuario = sesion ? await obtenerUsuarioActual(sesion.user.id) : null
+  const puedeCrearEvento = usuario ? verificarPermiso(usuario.rol, "historial", "crear") : false
+  const puedeCrearVacuna = usuario ? verificarPermiso(usuario.rol, "vacunas", "crear") : false
 
   const ETIQUETAS_SEXO: Record<string, string> = {
     macho: "Macho",
@@ -108,11 +116,11 @@ export default async function FichaMascotaPage({ params }: Props) {
         </TabsList>
 
         <TabsContent value="historial" className="pt-4">
-          <Timeline mascotaId={mascota.id} />
+          <Timeline mascotaId={mascota.id} puedeCrear={puedeCrearEvento} />
         </TabsContent>
 
         <TabsContent value="vacunas">
-          <TabVacunas mascotaId={mascota.id} especieId={mascota.especie_id} />
+          <TabVacunas mascotaId={mascota.id} especieId={mascota.especie_id} puedeCrear={puedeCrearVacuna} />
         </TabsContent>
       </Tabs>
     </div>

@@ -38,11 +38,19 @@ function crearMockCliente(cita: typeof CITA_SCHEDULED, estadoDestino: string) {
           eq: vi.fn(() => ({
             single: vi.fn().mockResolvedValue({ data: cita, error: null }),
           })),
+          filter: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: cita, error: null }),
+          })),
         })),
       })),
       update: vi.fn(() => ({
         eq: vi.fn(() => ({
           eq: vi.fn(() => ({
+            select: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({ data: { ...cita, estado: estadoDestino }, error: null }),
+            })),
+          })),
+          filter: vi.fn(() => ({
             select: vi.fn(() => ({
               single: vi.fn().mockResolvedValue({ data: { ...cita, estado: estadoDestino }, error: null }),
             })),

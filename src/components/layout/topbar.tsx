@@ -39,23 +39,25 @@ export function Topbar() {
         <Badge variant="outline" className="text-xs">
           Contexto: {contextoActivo.tipo === "personal" ? "Personal" : "Clínica"}
         </Badge>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-5">
-              <ChevronDown className="size-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem onClick={() => setContextoActivo({ tipo: "personal" })}>
-              <User className="mr-2 size-4" />
-              Personal
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setContextoActivo({ tipo: "clinic" })}>
-              <Building2 className="mr-2 size-4" />
-              {clinicaNombre}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {usuarioRol !== "dueño" && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-5">
+                <ChevronDown className="size-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setContextoActivo({ tipo: "personal" })}>
+                <User className="mr-2 size-4" />
+                Personal
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setContextoActivo({ tipo: "clinic" })}>
+                <Building2 className="mr-2 size-4" />
+                {clinicaNombre}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       <div className="flex items-center gap-2 md:hidden" title="Los registros se guardarán en este contexto">
         {contextoActivo.tipo === "personal" ? (

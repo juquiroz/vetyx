@@ -34,7 +34,7 @@ export async function crearDueno(input: FormData) {
     .from("duenos")
     .select("id")
     .eq("telefono", telefono)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .maybeSingle()
 
   if (existente) return { error: "Ya existe un dueño con ese teléfono en la clínica" }
@@ -44,7 +44,7 @@ export async function crearDueno(input: FormData) {
       .from("duenos")
       .select("id")
       .eq("cedula", cedula)
-      .eq("clinic_id", usuario.clinic_id)
+      .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
       .maybeSingle()
 
     if (cedulaExistente) return { error: "Ya existe un dueño con esa cédula en la clínica" }

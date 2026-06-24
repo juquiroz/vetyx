@@ -26,19 +26,50 @@ export async function invitarUsuario(input: FormData) {
   if (!parsed.success) return { error: "Datos inválidos", detalles: parsed.error.flatten() }
 
   const { email, nombre, rol } = parsed.data
-  const supabase = crearClienteAdmin()
-
   if (email === session.user.email) return { error: "No puedes invitarte a ti mismo" }
 
+  const supabase = crearClienteAdmin()
+
+  // Buscar el email globalmente (sin filtro clinic_id)
   const { data: existente } = await supabase
     .from("usuarios")
-    .select("id")
+    .select("id, clinic_id")
     .eq("email", email)
-    .eq("clinic_id", usuario.clinic_id)
     .maybeSingle()
 
-  if (existente) return { error: "Este email ya pertenece a un miembro de la clínica" }
+  if (existente) {
+    // Verificar que no sea ya staff en esta clínica
+    const { data: staffMembership } = await supabase
+      .from("clinic_memberships")
+      .select("id")
+      .eq("user_id", existente.id)
+      .eq("clinic_id", usuario.clinic_id!)
+      .eq("tipo", "staff")
+      .maybeSingle()
 
+    if (staffMembership) {
+      return { error: "Este email ya pertenece al staff de la clínica" }
+    }
+
+    // Si el usuario es dueño (sin clínica), asignarle clinic_id para atrás-compat
+    if (!existente.clinic_id) {
+      await supabase.from("usuarios").update({ clinic_id: usuario.clinic_id }).eq("id", existente.id)
+    }
+
+    const { error: insertError } = await supabase.from("clinic_memberships").insert({
+      user_id: existente.id,
+      clinic_id: usuario.clinic_id!,
+      tipo: "staff",
+      rol,
+    })
+
+    if (insertError) return { error: insertError.message }
+
+    limpiarCacheSesion()
+    return { success: true, mensaje: `${nombre} ha sido agregado al staff` }
+  }
+
+  // Usuario nuevo: crear auth user + usuarios + membership
   const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
     email,
     email_confirm: true,
@@ -58,6 +89,19 @@ export async function invitarUsuario(input: FormData) {
   if (usuarioError) {
     await supabase.auth.admin.deleteUser(authUser.user.id)
     return { error: usuarioError.message }
+  }
+
+  const { error: membershipError } = await supabase.from("clinic_memberships").insert({
+    user_id: authUser.user.id,
+    clinic_id: usuario.clinic_id!,
+    tipo: "staff",
+    rol,
+  })
+
+  if (membershipError) {
+    await supabase.from("usuarios").delete().eq("id", authUser.user.id)
+    await supabase.auth.admin.deleteUser(authUser.user.id)
+    return { error: membershipError.message }
   }
 
   limpiarCacheSesion()

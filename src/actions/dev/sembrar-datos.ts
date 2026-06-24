@@ -22,7 +22,7 @@ export async function sembrarDatosDemo() {
 
   if (!usuario) return { error: "Usuario no encontrado" }
 
-  const cid = usuario.clinic_id
+  const cid = usuario.clinic_id!
   const hoy = new Date()
   const ayer = new Date(hoy)
   ayer.setDate(ayer.getDate() - 1)

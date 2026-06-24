@@ -28,7 +28,7 @@ export async function buscarDuenos(query: string): Promise<ResultadoDueno[]> {
   const { data } = await supabase
     .from("duenos")
     .select("id, cedula, nombre, telefono, email, activo")
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .or(`nombre.ilike.${termino},telefono.ilike.${termino},cedula.ilike.${termino}`)
     .order("nombre")
     .limit(10)

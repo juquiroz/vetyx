@@ -25,7 +25,7 @@ export async function obtenerCitasRango(params: {
   let query = supabase
     .from("citas")
     .select("*, mascota:mascotas(id, nombre, especie:especies(id, nombre), dueno:duenos(id, nombre, telefono)), veterinario:usuarios(id, nombre, email, rol)")
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .neq("estado", "cancelled")
     .gte("fecha_hora", params.fecha_inicio)
     .lte("fecha_hora", params.fecha_fin)

@@ -35,14 +35,14 @@ export async function obtenerTimeline(
     .from("historial_medico")
     .select("id, tipo, fecha, diagnostico, tratamiento, notas, created_by, created_at")
     .eq("mascota_id", mascotaId)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .order("created_at", { ascending: false })
 
   const { data: vacunas } = await supabase
     .from("vacunas")
     .select("id, tipo_vacuna_id, nombre_personalizado, lote, fecha_aplicacion, fecha_proxima_dosis, observaciones, recordatorio_enviado, aplicado_por, created_at")
     .eq("mascota_id", mascotaId)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .order("created_at", { ascending: false })
 
   const userIds = [

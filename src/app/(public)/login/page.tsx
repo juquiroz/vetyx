@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Building2, User } from "lucide-react"
 import { listarUsuariosDev } from "@/actions/auth/listar-usuarios-dev"
 import { generarLinkDev } from "@/actions/auth/generar-link-dev"
 import { crearClienteNavegador } from "@/lib/supabase/client"
@@ -15,7 +16,7 @@ type UsuarioDev = {
   email: string
   nombre: string
   rol: string
-  clinic_id: string
+  clinic_id: string | null
 }
 
 function obtenerErrorUrl(): string | null {
@@ -135,11 +136,18 @@ export default function LoginPage() {
       </CardContent>
       <CardFooter className="flex-col gap-3">
         <p className="text-sm text-muted-foreground">
-          ¿Eres nuevo?{" "}
-          <Button variant="link" className="p-0 h-auto" onClick={() => router.push("/registro")}>
-            Registrar clínica
-          </Button>
+          ¿Eres nuevo?
         </p>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="flex-1" onClick={() => router.push("/registro")}>
+            <Building2 className="mr-1 size-3" />
+            Clínica
+          </Button>
+          <Button variant="outline" size="sm" className="flex-1" onClick={() => router.push("/registro")}>
+            <User className="mr-1 size-3" />
+            Dueño
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   )

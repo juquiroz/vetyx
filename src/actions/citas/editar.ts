@@ -37,7 +37,7 @@ export async function editarCita(input: FormData): Promise<EditarCitaOutput> {
     .from("citas")
     .select("*")
     .eq("id", id)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .single()
 
   if (!citaActual) return { ok: false, error: "Cita no encontrada" }
@@ -57,7 +57,7 @@ export async function editarCita(input: FormData): Promise<EditarCitaOutput> {
   if (vetFinal !== citaActual.veterinario_id || fechaFinal !== citaActual.fecha_hora) {
     const disponibilidad = await verificarDisponibilidadInterna({
       supabase,
-      clinic_id: usuario.clinic_id,
+      clinic_id: usuario.clinic_id!,
       veterinario_id: vetFinal,
       fecha_hora: fechaFinal,
       duracion_minutos: duracionFinal,
@@ -93,7 +93,7 @@ export async function editarCita(input: FormData): Promise<EditarCitaOutput> {
     .from("citas")
     .update(updates)
     .eq("id", id)
-    .eq("clinic_id", usuario.clinic_id)
+    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .select()
     .single()
 

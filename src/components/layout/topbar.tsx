@@ -17,7 +17,7 @@ import {
 
 export function Topbar() {
   const router = useRouter()
-  const { contextoActivo, setContextoActivo, clinicaNombre, usuarioRol, usuarioNombre } = useContexto()
+  const { contextoActivo, setContextoActivo, clinicaNombre, usuarioRol, usuarioNombre, clinicasStaff, clinicasCliente } = useContexto()
 
   async function cerrarSesion() {
     const supabase = crearClienteNavegador()
@@ -36,10 +36,10 @@ export function Topbar() {
         <span className="text-sm font-medium">
           {contextoActivo.tipo === "personal" ? "Personal" : clinicaNombre}
         </span>
-        <Badge variant="outline" className="text-xs">
-          Contexto: {contextoActivo.tipo === "personal" ? "Personal" : "Clínica"}
+        <Badge variant="outline" className="text-xs capitalize">
+          {contextoActivo.tipo === "personal" ? "Personal" : contextoActivo.tipo === "cliente" ? "Cliente" : "Staff"}
         </Badge>
-        {usuarioRol !== "dueño" && (
+        {(clinicasStaff.length + clinicasCliente.length) > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="size-5">
@@ -51,10 +51,18 @@ export function Topbar() {
                 <User className="mr-2 size-4" />
                 Personal
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setContextoActivo({ tipo: "clinic" })}>
-                <Building2 className="mr-2 size-4" />
-                {clinicaNombre}
-              </DropdownMenuItem>
+              {clinicasCliente.map((c) => (
+                <DropdownMenuItem key={c.id} onClick={() => setContextoActivo({ tipo: "cliente", clinicId: c.id, clinicNombre: c.nombre })}>
+                  <Building2 className="mr-2 size-4" />
+                  Cliente · {c.nombre}
+                </DropdownMenuItem>
+              ))}
+              {clinicasStaff.map((c) => (
+                <DropdownMenuItem key={c.id} onClick={() => setContextoActivo({ tipo: "staff", clinicId: c.id, clinicNombre: c.nombre })}>
+                  <Building2 className="mr-2 size-4" />
+                  Staff · {c.nombre}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

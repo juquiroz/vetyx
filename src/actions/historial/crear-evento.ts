@@ -54,7 +54,15 @@ export async function crearEvento(
     .select("id, tipo, fecha, diagnostico, tratamiento, notas, created_by, created_at")
     .single()
 
-  if (error || !nuevo) return { success: false, error: "Error al crear el evento" }
+  if (error || !nuevo) {
+    console.error("[crear-evento]", {
+      error: error?.message ?? error,
+      clinicId: usuario.clinic_id,
+      mascotaId: mascota_id,
+      userId: usuario.id,
+    })
+    return { success: false, error: error?.message ?? "Error al crear el evento" }
+  }
 
   const evento: EventoTimeline = {
     id: nuevo.id,

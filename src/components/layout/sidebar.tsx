@@ -4,25 +4,18 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useContexto } from "@/providers/contexto-provider"
+import type { ContextoActivo } from "@/providers/contexto-provider"
 import {
   LayoutDashboard,
   Calendar,
   Users,
-  UserCheck,
   PawPrint,
   Settings,
   UserCog,
+  UserCheck,
   User,
   Building2,
-  ChevronDown,
 } from "lucide-react"
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 const items = [
   { href: "/inicio", label: "Inicio", icon: LayoutDashboard },
@@ -37,8 +30,9 @@ const itemsConfig = [
   { href: "/configuracion/clientes", label: "Clientes", icon: UserCheck },
 ]
 
-const ITEMS_PERMITIDOS_POR_ROL: Record<string, string[]> = {
-  dueño: ["/inicio", "/duenos", "/mascotas"],
+function itemsParaRol(contexto: ContextoActivo): typeof items {
+  if (contexto.tipo === "staff") return items
+  return items.filter((i) => ["/inicio", "/mascotas"].includes(i.href))
 }
 
 function etiquetaRol(rol: string): string {
@@ -51,15 +45,20 @@ function etiquetaRol(rol: string): string {
   return mapa[rol] ?? rol
 }
 
-function itemsParaRol(rol: string): typeof items {
-  const permitidos = ITEMS_PERMITIDOS_POR_ROL[rol]
-  if (!permitidos) return items
-  return items.filter((i) => permitidos.includes(i.href))
-}
-
 export function Sidebar() {
   const pathname = usePathname()
-  const { contextoActivo, setContextoActivo, clinicaNombre, usuarioRol, usuarioNombre, clinicasStaff } = useContexto()
+  const {
+    contextoActivo,
+    setContextoActivo,
+    clinicaNombre,
+    usuarioRol,
+    usuarioNombre,
+    clinicasStaff,
+    clinicasCliente,
+  } = useContexto()
+
+  const tieneStaff = clinicasStaff.length > 0
+  const tieneCliente = clinicasCliente.length > 0
 
   return (
     <aside className="hidden md:flex w-60 flex-col border-r bg-background">
@@ -67,7 +66,7 @@ export function Sidebar() {
         Vetyx
       </div>
       <nav className="flex-1 space-y-1 p-2">
-        {itemsParaRol(usuarioRol).map((item) => (
+        {itemsParaRol(contextoActivo).map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -75,7 +74,7 @@ export function Sidebar() {
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
               pathname.startsWith(item.href)
                 ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted"
+                : "hover:bg-muted",
             )}
           >
             <item.icon className="size-4" />
@@ -83,7 +82,7 @@ export function Sidebar() {
           </Link>
         ))}
       </nav>
-      {usuarioRol !== "dueño" && (
+      {contextoActivo.tipo === "staff" && (
         <div className="border-t p-2">
           <p className="px-3 py-1 text-xs text-muted-foreground">Configuración</p>
           {itemsConfig.map((item) => (
@@ -94,7 +93,7 @@ export function Sidebar() {
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
                 pathname.startsWith(item.href)
                   ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted"
+                  : "hover:bg-muted",
               )}
             >
               <item.icon className="size-4" />
@@ -104,7 +103,7 @@ export function Sidebar() {
         </div>
       )}
       <div className="border-t p-3" title="Los registros se guardarán en este contexto">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-2">
           <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
             {usuarioNombre.charAt(0).toUpperCase()}
           </div>
@@ -113,57 +112,64 @@ export function Sidebar() {
             <p className="truncate text-xs text-muted-foreground">{etiquetaRol(usuarioRol)}</p>
           </div>
         </div>
-        {usuarioRol !== "dueño" && (
-          <div className="mt-2 flex gap-1 rounded-md bg-muted p-1">
-            <button
-              onClick={() => setContextoActivo({ tipo: "personal" })}
-              className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 text-xs transition-colors",
-                contextoActivo.tipo === "personal" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <User className="size-3" />
-              Personal
-            </button>
-            {clinicasStaff.length > 1 ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={cn(
-                      "flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-xs transition-colors",
-                      contextoActivo.tipo === "clinic" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    <Building2 className="size-3" />
-                    <span className="truncate">{contextoActivo.tipo === "clinic" ? clinicaNombre : "Clínica"}</span>
-                    <ChevronDown className="size-3 shrink-0" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" side="top">
-                  {clinicasStaff.map((c) => (
-                    <DropdownMenuItem
-                      key={c.id}
-                      onClick={() => setContextoActivo({ tipo: "clinic", clinicId: c.id, clinicNombre: c.nombre })}
-                    >
-                      {c.nombre}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <button
-                onClick={() => setContextoActivo({ tipo: "clinic" })}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 text-xs transition-colors",
-                  contextoActivo.tipo === "clinic" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Building2 className="size-3" />
-                Clínica
-              </button>
+
+        <div className="space-y-1">
+          <p className="px-3 py-1 text-xs font-medium text-muted-foreground">PERSONAL</p>
+          <button
+            onClick={() => setContextoActivo({ tipo: "personal" })}
+            className={cn(
+              "flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs transition-colors",
+              contextoActivo.tipo === "personal"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-muted text-muted-foreground hover:text-foreground",
             )}
-          </div>
-        )}
+          >
+            <User className="size-3.5" />
+            Personal
+          </button>
+
+          {tieneCliente && (
+            <>
+              <p className="px-3 py-1 text-xs font-medium text-muted-foreground">CLIENTE</p>
+              {clinicasCliente.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setContextoActivo({ tipo: "cliente", clinicId: c.id, clinicNombre: c.nombre })}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs transition-colors text-left",
+                    contextoActivo.tipo === "cliente" && contextoActivo.clinicId === c.id
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Building2 className="size-3.5 shrink-0" />
+                  <span className="truncate">Cliente · {c.nombre}</span>
+                </button>
+              ))}
+            </>
+          )}
+
+          {tieneStaff && (
+            <>
+              <p className="px-3 py-1 text-xs font-medium text-muted-foreground">STAFF</p>
+              {clinicasStaff.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setContextoActivo({ tipo: "staff", clinicId: c.id, clinicNombre: c.nombre })}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs transition-colors text-left",
+                    contextoActivo.tipo === "staff" && contextoActivo.clinicId === c.id
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Building2 className="size-3.5 shrink-0" />
+                  <span className="truncate">Staff · {c.nombre}</span>
+                </button>
+              ))}
+            </>
+          )}
+        </div>
       </div>
     </aside>
   )

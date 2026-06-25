@@ -50,7 +50,7 @@ export interface ClinicMembershipConClinica extends ClinicMembership {
   clinica_slug: string
 }
 
-export type ContextoOrigen = "personal" | "clinic"
+export type ContextoOrigen = "personal" | "cliente" | "staff"
 
 export interface MascotaMetadata {
   origenRegistro?: ContextoOrigen

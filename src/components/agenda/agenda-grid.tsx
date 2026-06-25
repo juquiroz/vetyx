@@ -60,9 +60,10 @@ function formatearTituloSemana(fechaStr: string): string {
 interface AgendaGridProps {
   onCreateCita: (fechaHora?: string) => void
   onClickEvento?: (citaId: string) => void
+  soloLectura?: boolean
 }
 
-export function AgendaGrid({ onCreateCita, onClickEvento }: AgendaGridProps) {
+export function AgendaGrid({ onCreateCita, onClickEvento, soloLectura = false }: AgendaGridProps) {
   const [vista, setVista] = useState<"dia" | "semana">("dia")
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0])
   const [veterinarioId, setVeterinarioId] = useState("")
@@ -145,6 +146,7 @@ export function AgendaGrid({ onCreateCita, onClickEvento }: AgendaGridProps) {
   }
 
   function manejarClickSlot(fila?: FilaAgenda) {
+    if (soloLectura) return
     onCreateCita(fila?.fecha_hora_utc)
   }
 
@@ -157,17 +159,19 @@ export function AgendaGrid({ onCreateCita, onClickEvento }: AgendaGridProps) {
 
   return (
     <div className="space-y-4">
-      <AgendaToolbar
-        vista={vista}
-        onChangeVista={setVista}
-        fecha={fecha}
-        titulo={titulo}
-        onNavegar={manejarNavegar}
-        veterinarioId={veterinarioId}
-        onChangeVeterinario={setVeterinarioId}
-        veterinarios={veterinarios}
-        onCreateCita={() => manejarClickSlot()}
-      />
+      {!soloLectura && (
+        <AgendaToolbar
+          vista={vista}
+          onChangeVista={setVista}
+          fecha={fecha}
+          titulo={titulo}
+          onNavegar={manejarNavegar}
+          veterinarioId={veterinarioId}
+          onChangeVeterinario={setVeterinarioId}
+          veterinarios={veterinarios}
+          onCreateCita={() => manejarClickSlot()}
+        />
+      )}
 
       {cargando ? (
         <div className="space-y-2">
@@ -184,7 +188,6 @@ export function AgendaGrid({ onCreateCita, onClickEvento }: AgendaGridProps) {
               ? "No hay citas programadas para este día."
               : "No hay citas programadas esta semana."
           }
-          accion={{ label: "Agendar cita", onClick: () => manejarClickSlot() }}
         />
       ) : (
         <div className="overflow-x-auto">
@@ -210,6 +213,7 @@ export function AgendaGrid({ onCreateCita, onClickEvento }: AgendaGridProps) {
                 numColumnas={numColumnas}
                 eventos={eventos.filter((e) => e.fila === fila.indice)}
                 vista={vista}
+                soloLectura={soloLectura}
                 onClickSlot={manejarClickSlot}
                 onClickEvento={onClickEvento}
               />
@@ -226,6 +230,7 @@ function SlotRow({
   numColumnas,
   eventos,
   vista,
+  soloLectura,
   onClickSlot,
   onClickEvento,
 }: {
@@ -233,6 +238,7 @@ function SlotRow({
   numColumnas: number
   eventos: EventoAgenda[]
   vista: string
+  soloLectura: boolean
   onClickSlot: (fila?: FilaAgenda) => void
   onClickEvento?: (citaId: string) => void
 }) {
@@ -264,7 +270,7 @@ function SlotRow({
           )
         }
 
-        if (celdasOcupadas.has(colIdx)) {
+        if (celdasOcupadas.has(colIdx) || soloLectura) {
           return <AgendaSlot key={colIdx} />
         }
 

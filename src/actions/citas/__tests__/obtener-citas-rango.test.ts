@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
-const { mockSesion, mockUsuario, mockCliente } = vi.hoisted(() => ({
+const { mockSesion, mockUsuario, mockCliente, mockContexto } = vi.hoisted(() => ({
   mockSesion: vi.fn(),
   mockUsuario: vi.fn(),
   mockCliente: vi.fn(),
+  mockContexto: vi.fn(),
 }))
 
 vi.mock("@/lib/auth/get-session", () => ({ obtenerSesion: mockSesion }))
 vi.mock("@/lib/auth/get-current-user", () => ({ obtenerUsuarioActual: mockUsuario }))
+vi.mock("@/lib/context/get-active-context", () => ({ getActiveContext: mockContexto }))
 vi.mock("@/lib/supabase/action", () => ({ crearClienteAccion: mockCliente }))
 
 import { obtenerCitasRango } from "../obtener-citas-rango"
@@ -55,6 +57,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockSesion.mockResolvedValue({ user: { id: "user-1" } })
   mockUsuario.mockResolvedValue({ id: "user-1", clinic_id: "clinic-1", rol: "admin", nombre: "Admin" })
+  mockContexto.mockResolvedValue({ tipo: "staff", clinicId: "clinic-1", clinicNombre: "Test Clinic" })
 })
 
 describe("obtenerCitasRango", () => {

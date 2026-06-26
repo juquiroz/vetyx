@@ -121,11 +121,7 @@
 #### Build
 - `next build` — clean, sin errores
 
-### Pendiente
-- Migrar ~36 server actions restantes a `getActiveContext()` con helper `resolverClinicId()` (ver `docs/06-memberships.md` para lista completa)
-- Reemplazar `usuario.clinic_id` por `getActiveContext().clinicId` en todas las acciones (Fase 5 original: deprecar columna `usuarios.clinic_id`)
-- `get_user_clinic_id()` — leer de `clinic_memberships`
-- Fix layout/script tag (hidratación tema oscuro) — PR separado
+### Pendiente (ver sección 2026-06-25 para versión actualizada)
 
 ### Decisiones de diseño
 - Contexto → Server Actions usando COOKIE (`vetyx_contexto`), nunca FormData/parámetro `_contexto`
@@ -136,3 +132,46 @@
 - Cliente no registrado: error + pedir registro (no crear auto)
 - Mascotas personales: NO visibles al staff
 - Legacy `usuarios.clinic_id`: migrar en Fase 5, no permanente
+- Sesión: nunca cachear en variable global del módulo (compartida entre requests en dev)
+- RLS con LEFT JOIN: si tabla secundaria bloquea lectura, JOIN retorna `null` — usar admin client cuando ya hay validación previa
+
+## Progreso — 2026-06-25
+
+### Bugfixes — Sesión/Caché
+
+#### Caché de sesión eliminado
+- `src/lib/auth/get-session.ts` — eliminado `let cacheSession` que causaba cross-user leak (usuario B veía sesión de A). Siempre obtiene sesión fresca de Supabase.
+- `src/lib/auth/get-current-user.ts` — eliminado `const cacheUsuario = new Map()`. Siempre consulta BD.
+- `limpiarCacheSesion()` y `limpiarCacheUsuario()` quedan como no-op para compatibilidad.
+
+#### RLS — duenos en personal context
+- `src/actions/mascotas/crear-con-dueno.ts` — agregado `user_id: usuario.id` al INSERT de `duenos`. Sin esto, RLS policy `(clinic_id IS NULL AND user_id = auth.uid())` fallaba al no enviar `user_id`.
+
+#### RLS — listar-clientes con usuarios de clinic_id null
+- `src/actions/usuarios/listar-clientes.ts` — cambiado `crearClienteAccion()` → `crearClienteAdmin()`. El JOIN `usuario:usuarios(...)` retornaba null porque RLS bloqueaba leer clientes con `usuarios.clinic_id = NULL`.
+
+#### Registro de clínica — faltaba clinic_memberships
+- `src/actions/auth/registro.ts` — agregado INSERT en `clinic_memberships` con `tipo: "staff"`. Antes solo se creaba `usuarios.clinic_id` legacy.
+
+#### Alta de cliente — falta dueño automático
+- `src/actions/usuarios/agregar-cliente.ts` — ahora crea `duenos` con `user_id`, `clinic_id` al agregar cliente. Si ya existe, `maybeSingle` lo detecta.
+
+### Mejora — Email en UI
+- `src/providers/contexto-provider.tsx` — agregado `usuarioEmail` prop
+- `src/app/(dashboard)/layout.tsx` — pasa `usuario.email ?? ""`
+- `src/components/layout/sidebar.tsx` — email visible debajo del nombre
+- `src/components/layout/topbar.tsx` — email visible debajo del nombre
+
+### DB — Limpieza
+- Eliminadas `clinic_memberships` huérfanas (apuntaban a clínicas inexistentes)
+- Backfilled `clinic_memberships` para staff registrado antes del fix de `registro.ts`
+
+### Tests
+- 22 archivos, 178 tests — pasan
+- Build — `next build` clean
+
+### Pendiente (actualizado)
+- Migrar ~35 server actions restantes a `getActiveContext()`
+- Arreglar RLS `usuarios` para staff leer datos de clientes vinculados por `clinic_memberships`
+- Deprecar `usuarios.clinic_id` (Fase 5)
+- Fix layout/script tag (hidratación tema oscuro) — PR separado

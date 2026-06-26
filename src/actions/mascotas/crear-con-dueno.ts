@@ -50,6 +50,7 @@ export async function crearMascotaConDueno(input: FormData) {
       .from("duenos")
       .insert({
         clinic_id: usuario.clinic_id,
+        user_id: usuario.id,
         cedula: dueno_cedula || null,
         nombre: dueno_nombre,
         telefono: dueno_telefono,

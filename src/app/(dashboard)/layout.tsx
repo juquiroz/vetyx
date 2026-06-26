@@ -33,6 +33,7 @@ export default async function DashboardLayout({
         clinicaNombre={clinicaNombre}
         usuarioRol={usuario.rol}
         usuarioNombre={usuario.nombre}
+        usuarioEmail={usuario.email ?? ""}
         membresias={usuario.membresias}
       >
         <div className="flex h-screen overflow-hidden">

@@ -15,6 +15,7 @@ interface ContextoType {
   clinicaNombre: string
   usuarioRol: string
   usuarioNombre: string
+  usuarioEmail: string
   membresias: ClinicMembershipConClinica[]
   clinicasStaff: { id: string; nombre: string }[]
   clinicasCliente: { id: string; nombre: string }[]
@@ -67,6 +68,7 @@ export function ContextoProvider({
   clinicaNombre,
   usuarioRol,
   usuarioNombre,
+  usuarioEmail,
   membresias = [],
   children,
 }: {
@@ -74,6 +76,7 @@ export function ContextoProvider({
   clinicaNombre: string
   usuarioRol: string
   usuarioNombre: string
+  usuarioEmail: string
   membresias?: ClinicMembershipConClinica[]
   children: React.ReactNode
 }) {
@@ -152,6 +155,7 @@ export function ContextoProvider({
         clinicaNombre: currentNombre,
         usuarioRol,
         usuarioNombre,
+        usuarioEmail,
         membresias,
         clinicasStaff,
         clinicasCliente,

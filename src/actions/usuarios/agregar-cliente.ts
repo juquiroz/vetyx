@@ -60,5 +60,25 @@ export async function agregarCliente(input: FormData) {
 
   if (insertError) return { error: insertError.message }
 
+  const { data: duenoExistente } = await supabase
+    .from("duenos")
+    .select("id")
+    .eq("user_id", existente.id)
+    .eq("clinic_id", usuario.clinic_id)
+    .maybeSingle()
+
+  if (!duenoExistente) {
+    const { error: duenoError } = await supabase.from("duenos").insert({
+      clinic_id: usuario.clinic_id,
+      user_id: existente.id,
+      nombre: existente.nombre || "Cliente",
+      telefono: "—",
+      email: existente.email,
+      created_by: usuario.id,
+    })
+
+    if (duenoError) return { error: duenoError.message }
+  }
+
   return { success: true, mensaje: `${existente.nombre} ha sido agregado como cliente` }
 }

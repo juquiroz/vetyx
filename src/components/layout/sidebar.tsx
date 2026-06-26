@@ -53,6 +53,7 @@ export function Sidebar() {
     clinicaNombre,
     usuarioRol,
     usuarioNombre,
+    usuarioEmail,
     clinicasStaff,
     clinicasCliente,
   } = useContexto()
@@ -109,6 +110,7 @@ export function Sidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="truncate text-sm font-medium">{contextoActivo.tipo === "personal" ? "Personal" : clinicaNombre}</p>
+            <p className="truncate text-xs text-muted-foreground">{usuarioEmail}</p>
             <p className="truncate text-xs text-muted-foreground">{etiquetaRol(usuarioRol)}</p>
           </div>
         </div>

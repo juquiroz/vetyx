@@ -12,13 +12,9 @@ export interface UsuarioActual {
   membresias?: ClinicMembershipConClinica[]
 }
 
-const cacheUsuario = new Map<string, UsuarioActual>()
-
 export async function obtenerUsuarioActual(
   userId: string
 ): Promise<UsuarioActual | null> {
-  if (cacheUsuario.has(userId)) return cacheUsuario.get(userId)!
-
   const supabase = await crearClienteAccion()
   const { data } = await supabase
     .from("usuarios")
@@ -45,18 +41,20 @@ export async function obtenerUsuarioActual(
     .eq("user_id", userId)
     .eq("activo", true)
 
-  const membresias: ClinicMembershipConClinica[] = (membresiasData as unknown as RawMembership[] ?? []).map((m) => ({
-    id: m.id,
-    clinic_id: m.clinic_id,
-    user_id: userId,
-    tipo: m.tipo,
-    rol: m.rol,
-    activo: m.activo,
-    created_at: m.created_at,
-    updated_at: m.updated_at,
-    clinica_nombre: m.clinica.nombre,
-    clinica_slug: m.clinica.slug,
-  }))
+  const membresias: ClinicMembershipConClinica[] = ((membresiasData as unknown as RawMembership[]) ?? [])
+    .filter((m): m is RawMembership => m.clinica !== null)
+    .map((m) => ({
+      id: m.id,
+      clinic_id: m.clinic_id,
+      user_id: userId,
+      tipo: m.tipo,
+      rol: m.rol,
+      activo: m.activo,
+      created_at: m.created_at,
+      updated_at: m.updated_at,
+      clinica_nombre: m.clinica.nombre,
+      clinica_slug: m.clinica.slug,
+    }))
 
   const staffMembership = membresias.find(m => m.tipo === "staff")
 
@@ -70,11 +68,7 @@ export async function obtenerUsuarioActual(
     membresias,
   }
 
-  cacheUsuario.set(userId, usuario)
   return usuario
 }
 
-export function limpiarCacheUsuario(userId?: string) {
-  if (userId) cacheUsuario.delete(userId)
-  else cacheUsuario.clear()
-}
+export function limpiarCacheUsuario(_userId?: string) {}

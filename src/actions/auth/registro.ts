@@ -58,6 +58,21 @@ export async function registrarClinica(input: FormData) {
     return { error: usuarioError.message }
   }
 
+  const { error: membershipError } = await supabase.from("clinic_memberships").insert({
+    clinic_id: clinica.id,
+    user_id: userId,
+    tipo: "staff",
+    rol: "admin",
+    activo: true,
+  })
+
+  if (membershipError) {
+    await supabase.from("usuarios").delete().eq("id", userId)
+    await supabase.from("clinicas").delete().eq("id", clinica.id)
+    await supabase.auth.admin.deleteUser(userId)
+    return { error: membershipError.message }
+  }
+
   const { error: linkError, data: linkData } = await supabase.auth.admin.generateLink({
     type: "magiclink",
     email,

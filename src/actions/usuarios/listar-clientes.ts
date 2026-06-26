@@ -3,7 +3,7 @@
 import { obtenerSesion } from "@/lib/auth/get-session"
 import { obtenerUsuarioActual } from "@/lib/auth/get-current-user"
 import { verificarPermiso } from "@/lib/auth/check-permission"
-import { crearClienteAccion } from "@/lib/supabase/action"
+import { crearClienteAdmin } from "@/lib/supabase/admin"
 
 export interface ClienteInfo {
   id: string
@@ -23,7 +23,7 @@ export async function listarClientes(): Promise<ClienteInfo[]> {
   const permiso = verificarPermiso(usuario.rol, "clientes", "ver")
   if (!permiso) return []
 
-  const supabase = await crearClienteAccion()
+  const supabase = crearClienteAdmin()
 
   if (!usuario.clinic_id) return []
 

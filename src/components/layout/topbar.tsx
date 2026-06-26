@@ -17,7 +17,7 @@ import {
 
 export function Topbar() {
   const router = useRouter()
-  const { contextoActivo, setContextoActivo, clinicaNombre, usuarioRol, usuarioNombre, clinicasStaff, clinicasCliente } = useContexto()
+  const { contextoActivo, setContextoActivo, clinicaNombre, usuarioRol, usuarioNombre, usuarioEmail, clinicasStaff, clinicasCliente } = useContexto()
 
   async function cerrarSesion() {
     const supabase = crearClienteNavegador()
@@ -92,6 +92,7 @@ export function Topbar() {
         </div>
         <div className="text-right">
           <p className="text-sm leading-tight">{usuarioNombre}</p>
+          <p className="truncate max-w-40 text-xs text-muted-foreground">{usuarioEmail}</p>
           <p className="text-xs text-muted-foreground capitalize">{usuarioRol}</p>
         </div>
       </div>

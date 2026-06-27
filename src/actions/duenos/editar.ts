@@ -33,18 +33,16 @@ export async function editarDueno(input: FormData) {
 
   const { data: dueno } = await supabase
     .from("duenos")
-    .select("clinic_id")
+    .select("id")
     .eq("id", id)
     .single()
 
   if (!dueno) return { error: "Dueño no encontrado" }
-  if (dueno.clinic_id !== usuario.clinic_id) return { error: "No autorizado" }
 
   const { data: telefonoExistente } = await supabase
     .from("duenos")
     .select("id")
     .eq("telefono", telefono)
-    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .neq("id", id)
     .maybeSingle()
 
@@ -55,7 +53,6 @@ export async function editarDueno(input: FormData) {
       .from("duenos")
       .select("id")
       .eq("cedula", cedula)
-      .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
       .neq("id", id)
       .maybeSingle()
 

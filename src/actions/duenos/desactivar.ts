@@ -28,12 +28,11 @@ export async function desactivarDueno(input: FormData) {
 
   const { data: dueno } = await supabase
     .from("duenos")
-    .select("clinic_id")
+    .select("id")
     .eq("id", id)
     .single()
 
   if (!dueno) return { error: "Dueño no encontrado" }
-  if (dueno.clinic_id !== usuario.clinic_id) return { error: "No autorizado" }
 
   const { count } = await supabase
     .from("mascotas")

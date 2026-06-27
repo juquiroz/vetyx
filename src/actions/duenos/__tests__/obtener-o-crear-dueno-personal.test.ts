@@ -34,6 +34,7 @@ function crearCadenaMock(respuestas: {
       ),
     })),
   }))
+  mock.upsert = vi.fn().mockResolvedValue({ error: null })
   return mock
 }
 

@@ -35,6 +35,7 @@ function crearCadena(respuestas: {
     respuestas.single ?? { data: { id: DUENO_ID, activo: true }, error: null },
   )
   mock.insert = vi.fn(() => mock)
+  mock.upsert = vi.fn().mockResolvedValue({ error: null })
   return mock
 }
 

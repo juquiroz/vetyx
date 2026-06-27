@@ -25,12 +25,11 @@ export async function vincularDuenoAUsuario(input: FormData) {
 
   const { data: dueno } = await supabase
     .from("duenos")
-    .select("id, clinic_id, user_id")
+    .select("id, user_id")
     .eq("id", duenoId)
     .single()
 
   if (!dueno) return { error: "Dueño no encontrado" }
-  if (dueno.clinic_id !== usuario.clinic_id) return { error: "No autorizado" }
   if (dueno.user_id) return { error: "Este dueño ya está vinculado a un usuario" }
 
   const { error } = await supabase

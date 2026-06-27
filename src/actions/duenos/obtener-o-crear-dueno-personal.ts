@@ -39,5 +39,16 @@ export async function obtenerOCrearDuenoPersonal() {
 
   if (error) return { success: false as const, error: error.message }
 
+  if (usuario.clinic_id) {
+    await supabase
+      .from("clinic_clients")
+      .upsert({
+        clinic_id: usuario.clinic_id,
+        dueno_id: nuevo.id,
+        activo: true,
+        created_by: usuario.id,
+      }, { onConflict: "clinic_id, dueno_id" })
+  }
+
   return { success: true as const, data: { id: nuevo.id } }
 }

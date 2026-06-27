@@ -1,6 +1,7 @@
 "use server"
 
 import { z } from "zod"
+import { cookies } from "next/headers"
 import { obtenerSesion, limpiarCacheSesion } from "@/lib/auth/get-session"
 import { obtenerUsuarioActual } from "@/lib/auth/get-current-user"
 import { verificarPermiso } from "@/lib/auth/check-permission"
@@ -18,6 +19,20 @@ const esquema = z.object({
   sexo: z.enum(["macho", "hembra", "no_especificado"]).optional(),
   esterilizado: z.string().optional(),
 })
+
+async function obtenerClinicIdContexto(membresias: Array<{ clinic_id: string; activo: boolean; tipo: string }>): Promise<string | null> {
+  const cookieStore = await cookies()
+  const raw = cookieStore.get("vetyx_contexto")?.value
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed.clinicId) {
+      const m = membresias.find((x) => x.clinic_id === parsed.clinicId && x.activo)
+      return m?.clinic_id ?? null
+    }
+  } catch { /* ignore invalid cookie */ }
+  return null
+}
 
 export async function crearMascota(input: FormData) {
   const session = await obtenerSesion()
@@ -53,21 +68,38 @@ export async function crearMascota(input: FormData) {
     resolvedOwnerId = res.data.id
   }
 
-  const { error } = await supabase.from("mascotas").insert({
-    clinic_id: usuario.clinic_id,
-    owner_id: resolvedOwnerId,
-    especie_id,
-    nombre,
-    raza: raza || null,
-    fecha_nacimiento: fecha_nacimiento || null,
-    color: color || null,
-    peso: peso ? parseFloat(peso) : null,
-    sexo: sexo ?? "no_especificado",
-    esterilizado: esterilizado === "true",
-    created_by: usuario.id,
-  })
+  const clinicId = usuario.clinic_id ?? await obtenerClinicIdContexto(usuario.membresias ?? [])
+
+  const { data: nuevo, error } = await supabase
+    .from("mascotas")
+    .insert({
+      clinic_id: usuario.clinic_id,
+      owner_id: resolvedOwnerId,
+      especie_id,
+      nombre,
+      raza: raza || null,
+      fecha_nacimiento: fecha_nacimiento || null,
+      color: color || null,
+      peso: peso ? parseFloat(peso) : null,
+      sexo: sexo ?? "no_especificado",
+      esterilizado: esterilizado === "true",
+      created_by: usuario.id,
+    })
+    .select("id")
+    .single()
 
   if (error) return { error: error.message }
+
+  if (clinicId && nuevo) {
+    await supabase
+      .from("clinic_patients")
+      .upsert({
+        clinic_id: clinicId,
+        mascota_id: nuevo.id,
+        activo: true,
+        created_by: usuario.id,
+      }, { onConflict: "clinic_id, mascota_id" })
+  }
 
   limpiarCacheSesion()
   return { success: true }

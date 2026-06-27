@@ -35,7 +35,6 @@ export async function obtenerDueno(id: string): Promise<DuenoConMascotas | null>
     .from("duenos")
     .select("id, cedula, nombre, telefono, email, direccion, activo")
     .eq("id", id)
-    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .single()
 
   if (!dueno) return null

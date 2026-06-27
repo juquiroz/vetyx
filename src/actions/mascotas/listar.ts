@@ -28,7 +28,6 @@ export async function listarMascotas(): Promise<MascotaResumen[]> {
   const { data: mascotas } = await supabase
     .from("mascotas")
     .select("id, nombre, especie_id, raza, sexo, activo, owner_id")
-    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .order("created_at", { ascending: false })
 
   if (!mascotas || mascotas.length === 0) return []

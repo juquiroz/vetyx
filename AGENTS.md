@@ -170,8 +170,101 @@
 - 22 archivos, 178 tests — pasan
 - Build — `next build` clean
 
-### Pendiente (actualizado)
-- Migrar ~35 server actions restantes a `getActiveContext()`
-- Arreglar RLS `usuarios` para staff leer datos de clientes vinculados por `clinic_memberships`
-- Deprecar `usuarios.clinic_id` (Fase 5)
+## Progreso — 2026-06-25 (tarde)
+
+### Arquitectura — Nuevo modelo de dominio (aprobado)
+
+Decisión de producto: **las mascotas no pertenecen a una clínica**. La clínica atiende mascotas. El dueño es global.
+
+#### Modelo de 3 capas:
+
+```
+IDENTIDAD GLOBAL (sin clinic_id):
+  auth.users → usuarios → duenos → mascotas
+
+RELACIÓN LABORAL (existe):
+  usuarios → clinic_memberships (tipo='staff') → clínica
+
+RELACIÓN COMERCIAL (NUEVA):
+  duenos → clinic_clients → clínica
+
+RELACIÓN CLÍNICA (NUEVA):
+  mascotas → clinic_patients → clínica
+```
+
+#### Tablas nuevas:
+- `clinic_clients` — (clinic_id, dueno_id, activo) — UNIQUE(clinic_id, dueno_id)
+- `clinic_patients` — (clinic_id, mascota_id, numero_expediente, fecha_ingreso, estado, veterinario_referente, notas, activo) — UNIQUE(clinic_id, mascota_id)
+
+#### Tablas que perderán clinic_id (Fase 5):
+- `duenos` → global
+- `mascotas` → global
+
+#### Tablas que conservan clinic_id:
+- `citas`, `historial_medico`, `vacunas` (inherentemente por clínica)
+- `usuarios` (staff tienen clinic_id, dueños NULL)
+- `clinic_memberships`, `clinic_clients`, `clinic_patients`
+
+#### Decisiones:
+- `clinic_clients` y `clinic_patients` son tablas separadas (dominios distintos)
+- `clinic_clients` con `dueno_id` explícito (no inferir desde mascotas)
+- `clinic_patients` almacena datos propios de la clínica (expediente, ingreso, estado, vet referente, notas)
+- Historial clínico es por clínica, no compartido por defecto
+- Menú "Dueños" → "Clientes" (Fase 4)
+
+### Fase 1 implementada
+- `supabase/migrations/013_clinic_clients_patients.sql` — CREATE TABLE + RLS (7 políticas por tabla) + índices
+- `src/types/database.ts` — tipos `clinic_clients` + `clinic_patients`
+- `src/types/models.ts` — `ClinicClient`, `ClinicPatient`, `ClinicClientConDueno`, `ClinicPatientConMascota`
+
+### Fase 2 — RLS dual (migración 014)
+- `supabase/migrations/014_rls_duenos_mascotas.sql` — RLS dual para `duenos` y `mascotas`: staff puede ver mediante `clinic_id` (legacy) O mediante `EXISTS` en `clinic_clients`/`clinic_patients`
+- Aplica a todas las políticas (SELECT, INSERT, UPDATE, DELETE)
+
+### Fase 3 — Server Actions migradas (sin filtro clinic_id explícito)
+
+#### Lectura (RLS reemplaza filtro manual):
+- `src/actions/duenos/listar.ts` (page) — quitado `.filter("clinic_id")`
+- `src/actions/duenos/obtener.ts` — quitado `.filter("clinic_id")`
+- `src/actions/duenos/buscar.ts` — quitado `.filter("clinic_id")`
+- `src/actions/mascotas/listar.ts` — quitado `.filter("clinic_id")`
+- `src/actions/mascotas/obtener.ts` — quitado `.filter("clinic_id")`
+- `src/actions/mascotas/buscar.ts` — quitados 4 `.filter("clinic_id")`
+- `src/actions/shared/buscar-global.ts` — quitados filtros en duenos/mascotas
+
+#### Escritura (crea clinic_clients + clinic_patients):
+- `src/actions/duenos/crear.ts` — upsert clinic_clients tras insert
+- `src/actions/duenos/obtener-o-crear-dueno-personal.ts` — upsert clinic_clients tras insert
+- `src/actions/mascotas/crear.ts` — upsert clinic_patients tras insert
+- `src/actions/mascotas/crear-con-dueno.ts` — upsert clinic_clients + clinic_patients tras insert
+- `src/actions/usuarios/agregar-cliente.ts` — ya creaba clinic_clients + clinic_patients (no cambió)
+
+#### Validación (ownership checks → RLS):
+- `src/actions/duenos/editar.ts` — quitado check `clinic_id !== usuario.clinic_id`
+- `src/actions/duenos/desactivar.ts` — quitado check
+- `src/actions/duenos/vincular-usuario.ts` — quitado check
+- `src/actions/mascotas/editar.ts` — quitado check
+- `src/actions/mascotas/desactivar.ts` — quitado check
+
+### Build + Tests
+- `next build` — clean
+- 22 archivos, 178 tests — pasan
+
+### Bugfix — Mascota de cliente no visible (post-Fase 3)
+
+#### Issue 1 — `agregar-cliente.ts` buscaba dueno solo con `clinic_id IS NULL`
+Si el cliente fue invitado con el flujo legacy (antes del refactoring), podía tener un dueno con `clinic_id` seteado y mascotas vinculadas a ESE dueno (no al personal con `clinic_id = NULL`). El lookup `.is("clinic_id", null)` no encontraba el dueno legacy, y las mascotas no se migraban a `clinic_patients`.
+- **Fix**: buscar duenos por `user_id` sin filtrar por `clinic_id`, buscar mascotas en todos los duenos encontrados.
+
+#### Issue 2 — `mascotas/crear.ts` y `crear-con-dueno.ts` usaban `usuario.clinic_id`
+Para usuarios con rol `dueño` (cliente), `usuario.clinic_id` es NULL, así que el upsert de `clinic_patients` se saltaba. Esto impedía que mascotas creadas después de la invitación fueran visibles al staff.
+- **Fix**: leer la cookie `vetyx_contexto` como fallback para obtener el `clinicId` del contexto activo cuando `usuario.clinic_id` es NULL.
+- Helper `obtenerClinicIdContexto()` agregado en ambos archivos.
+
+### Pendiente (Fases 4-6)
+- **Fase 4**: UI — renombrar Dueños → Clientes (sidebar, breadcrumbs, títulos)
+- **Fase 5**: Drop clinic_id de duenos/mascotas (migración 015)
+- **Fase 6**: Simplificar RLS (eliminar paths legacy, migración 016)
+- **Backfill**: Migrar datos legacy duenos/mascotas con clinic_id a clinic_clients/clinic_patients
+- **vacunas/citas/historial**: Migrar chequeos de `mascota.clinic_id` a clinic_patients scope
 - Fix layout/script tag (hidratación tema oscuro) — PR separado

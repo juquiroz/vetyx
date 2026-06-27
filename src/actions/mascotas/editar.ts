@@ -36,12 +36,11 @@ export async function editarMascota(input: FormData) {
 
   const { data: mascota } = await supabase
     .from("mascotas")
-    .select("id, clinic_id")
+    .select("id")
     .eq("id", id)
     .single()
 
   if (!mascota) return { error: "Mascota no encontrada" }
-  if (mascota.clinic_id !== usuario.clinic_id) return { error: "No autorizado" }
 
   const updateFields: Record<string, unknown> = {
     nombre,

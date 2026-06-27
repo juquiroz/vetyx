@@ -410,6 +410,81 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_clients: {
+        Row: {
+          id: string
+          clinic_id: string
+          dueno_id: string
+          activo: boolean
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          dueno_id: string
+          activo?: boolean
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          dueno_id?: string
+          activo?: boolean
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      clinic_patients: {
+        Row: {
+          id: string
+          clinic_id: string
+          mascota_id: string
+          numero_expediente: string | null
+          fecha_ingreso: string | null
+          estado: string
+          veterinario_referente: string | null
+          notas: string | null
+          activo: boolean
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          mascota_id: string
+          numero_expediente?: string | null
+          fecha_ingreso?: string | null
+          estado?: string
+          veterinario_referente?: string | null
+          notas?: string | null
+          activo?: boolean
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          mascota_id?: string
+          numero_expediente?: string | null
+          fecha_ingreso?: string | null
+          estado?: string
+          veterinario_referente?: string | null
+          notas?: string | null
+          activo?: boolean
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>

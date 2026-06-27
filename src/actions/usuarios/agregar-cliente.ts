@@ -60,24 +60,54 @@ export async function agregarCliente(input: FormData) {
 
   if (insertError) return { error: insertError.message }
 
-  const { data: duenoExistente } = await supabase
+  // Buscar todos los duenos del usuario (personal global + legacy con clinic_id)
+  const { data: duenos } = await supabase
     .from("duenos")
     .select("id")
     .eq("user_id", existente.id)
+    .limit(1)
+
+  if (!duenos || duenos.length === 0) {
+    return { error: "El usuario no tiene un perfil de dueño registrado. Pídele que complete su registro primero." }
+  }
+
+  const duenoPrincipal = duenos[0]
+
+  // Crear clinic_clients (relación comercial: clínica ↔ dueño)
+  const { data: ccExistente } = await supabase
+    .from("clinic_clients")
+    .select("id")
+    .eq("dueno_id", duenoPrincipal.id)
     .eq("clinic_id", usuario.clinic_id)
     .maybeSingle()
 
-  if (!duenoExistente) {
-    const { error: duenoError } = await supabase.from("duenos").insert({
+  if (!ccExistente) {
+    const { error: ccError } = await supabase.from("clinic_clients").insert({
       clinic_id: usuario.clinic_id,
-      user_id: existente.id,
-      nombre: existente.nombre || "Cliente",
-      telefono: "—",
-      email: existente.email,
+      dueno_id: duenoPrincipal.id,
       created_by: usuario.id,
     })
+    if (ccError) return { error: ccError.message }
+  }
 
-    if (duenoError) return { error: duenoError.message }
+  // Migrar mascotas existentes del dueño a clinic_patients
+  const duenoIds = duenos.map((d) => d.id)
+  const { data: mascotas } = await supabase
+    .from("mascotas")
+    .select("id")
+    .in("owner_id", duenoIds)
+    .eq("activo", true)
+
+  if (mascotas && mascotas.length > 0) {
+    const { error: cpError } = await supabase.from("clinic_patients").upsert(
+      mascotas.map((m) => ({
+        clinic_id: usuario.clinic_id!,
+        mascota_id: m.id,
+        created_by: usuario.id,
+      })),
+      { onConflict: "clinic_id, mascota_id", ignoreDuplicates: true }
+    )
+    if (cpError) return { error: cpError.message }
   }
 
   return { success: true, mensaje: `${existente.nombre} ha sido agregado como cliente` }

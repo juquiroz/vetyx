@@ -1,10 +1,25 @@
 "use server"
 
 import { z } from "zod"
+import { cookies } from "next/headers"
 import { obtenerSesion, limpiarCacheSesion } from "@/lib/auth/get-session"
 import { obtenerUsuarioActual } from "@/lib/auth/get-current-user"
 import { verificarPermiso } from "@/lib/auth/check-permission"
 import { crearClienteAccion } from "@/lib/supabase/action"
+
+async function obtenerClinicIdContexto(membresias: Array<{ clinic_id: string; activo: boolean; tipo: string }>): Promise<string | null> {
+  const cookieStore = await cookies()
+  const raw = cookieStore.get("vetyx_contexto")?.value
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed.clinicId) {
+      const m = membresias.find((x) => x.clinic_id === parsed.clinicId && x.activo)
+      return m?.clinic_id ?? null
+    }
+  } catch { /* ignore invalid cookie */ }
+  return null
+}
 
 const esquema = z.object({
   dueno_nombre: z.string().min(1, "El nombre del dueño es requerido").max(120),
@@ -38,7 +53,6 @@ export async function crearMascotaConDueno(input: FormData) {
     .from("duenos")
     .select("id")
     .eq("telefono", dueno_telefono)
-    .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
     .maybeSingle()
 
   let owner_id: string
@@ -76,6 +90,40 @@ export async function crearMascotaConDueno(input: FormData) {
   })
 
   if (mascotaError) return { error: mascotaError.message }
+
+  const clinicId = usuario.clinic_id ?? await obtenerClinicIdContexto(usuario.membresias ?? [])
+
+  if (clinicId) {
+    const { error: ccError } = await supabase
+      .from("clinic_clients")
+      .upsert({
+        clinic_id: clinicId,
+        dueno_id: owner_id,
+        activo: true,
+        created_by: usuario.id,
+      }, { onConflict: "clinic_id, dueno_id" })
+    if (ccError) return { error: ccError.message }
+
+    const { data: nuevaMascota } = await supabase
+      .from("mascotas")
+      .select("id")
+      .eq("owner_id", owner_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single()
+
+    if (nuevaMascota) {
+      const { error: cpError } = await supabase
+        .from("clinic_patients")
+        .upsert({
+          clinic_id: clinicId,
+          mascota_id: nuevaMascota.id,
+          activo: true,
+          created_by: usuario.id,
+        }, { onConflict: "clinic_id, mascota_id" })
+      if (cpError) return { error: cpError.message }
+    }
+  }
 
   limpiarCacheSesion()
   return { success: true }

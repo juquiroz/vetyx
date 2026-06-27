@@ -25,7 +25,6 @@ export async function buscarGlobal(query: string): Promise<ResultadoGlobal> {
     supabase
       .from("duenos")
       .select("id, nombre, telefono")
-      .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
       .eq("activo", true)
       .or(`nombre.ilike.${termino},telefono.ilike.${termino},cedula.ilike.${termino}`)
       .order("nombre")
@@ -34,7 +33,6 @@ export async function buscarGlobal(query: string): Promise<ResultadoGlobal> {
     supabase
       .from("mascotas")
       .select("id, nombre, especie_id, owner_id")
-      .filter("clinic_id", usuario.clinic_id !== null ? "eq" : "is", usuario.clinic_id)
       .eq("activo", true)
       .ilike("nombre", termino)
       .order("nombre")

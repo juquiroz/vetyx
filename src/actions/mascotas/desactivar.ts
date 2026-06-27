@@ -28,12 +28,11 @@ export async function desactivarMascota(input: FormData) {
 
   const { data: mascota } = await supabase
     .from("mascotas")
-    .select("clinic_id")
+    .select("id")
     .eq("id", id)
     .single()
 
   if (!mascota) return { error: "Mascota no encontrada" }
-  if (mascota.clinic_id !== usuario.clinic_id) return { error: "No autorizado" }
 
   const { error } = await supabase.from("mascotas").update({ activo: false }).eq("id", id)
 
